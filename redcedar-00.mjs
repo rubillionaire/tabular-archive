@@ -1,21 +1,26 @@
 /*
-This is a little test to make sure i could round trip data
-and i can!
-and it turns out that doing string encoding doesn't
-actually save any room here, lol. maybe if we
-actually decode some of the fields by passing in a header
-that can determine what to do with these things
+- redcedar-00
+- adds `cateogry` & `geo` encodings, can roudtrip data
+- does not include a header, so this roudtrip can only be done in process
  */
 
 import fs from 'node:fs'
 import csv from 'csv-parser'
 import {pipe, through} from 'mississippi'
 import enc from 'protocol-buffers-encodings'
-import varint from 'varint'
 import lps from 'length-prefixed-stream'
 
 const categories = {}
 
+// TODO should it be possible to move custom encodings into user land?
+// - API might have to be bigger since we are doing some silly
+// conditional stuff to make this work.
+// - we could potentially pull the conditional into the individual functions,
+// looking for an object to expand rather than just a singular value to encode
+// function encode ({field, value}, buffer, offset) {}
+// otherwise we could wrap all `enc` setups to consider field and value
+// or we could keep this internal, referencing out that category is a thing
+// to hook into, and that its supported by our encode / decode
 enc.category = enc.make(7,
   function encode (field, val, buffer, offset) {
     if (!Array.isArray(categories[field])) categories[field] = []
@@ -126,17 +131,17 @@ function encodeRow ({ row }) {
     if (spec.encoder.type === 7) return spec.encoder.encodingLength(spec.field, spec.value)
     else return spec.encoder.encodingLength(spec.value)
   }).reduce((acc, curr) => acc + curr, 0)
-  let buf = Buffer.alloc(bufLen)
+  let buffer = Buffer.alloc(bufLen)
   let bufOffset = 0
   specs.forEach(spec => {
-    if (spec.encoder.type === 7) spec.encoder.encode(spec.field, spec.value, buf, bufOffset)
-    else spec.encoder.encode(spec.value, buf, bufOffset)
+    if (spec.encoder.type === 7) spec.encoder.encode(spec.field, spec.value, buffer, bufOffset)
+    else spec.encoder.encode(spec.value, buffer, bufOffset)
     bufOffset += spec.encoder.encode.bytes
   })
-  return buf
+  return { buffer }
 }
 
-function decodeRow ({ buf }) {
+function decodeRow ({ buffer }) {
   const row = {}
   let bufLen = 0
   header.forEach(field => {
@@ -146,20 +151,19 @@ function decodeRow ({ buf }) {
       encoder = enc[fieldSpec.encoding]
     }
     let value
-    if (encoder.type === 7) value = encoder.decode(field, buf, bufLen)
-    else value = encoder.decode(buf, bufLen)
+    if (encoder.type === 7) value = encoder.decode(field, buffer, bufLen)
+    else value = encoder.decode(buffer, bufLen)
     row[field] = value
     bufLen += encoder.decode.bytes
   })
   return row
 }
-
 pipe(
   fs.createReadStream('test/redcedar-poi-nearest-by-period.csv'),
   csvStream,
   through.obj((row, enc, next) => {
-    const buf = encodeRow({ row })
-    next(null, buf)
+    const { buffer } = encodeRow({ row })
+    next(null, buffer)
   }),
   lps.encode(),
   fs.createWriteStream('encoded.lp'),
@@ -168,8 +172,8 @@ pipe(
     pipe(
       fs.createReadStream('encoded.lp'),
       lps.decode(),
-      through((buf, enc, next) => {
-        const row = decodeRow({ buf })
+      through((buffer, enc, next) => {
+        const row = decodeRow({ buffer })
         console.log(row)
         next()
       }),
