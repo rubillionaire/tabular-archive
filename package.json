@@ -1,0 +1,21 @@
+{
+  "name": "tabular-archive",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "brittle test/*.mjs"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "csv-parser": "^3.0.0",
+    "length-prefixed-stream": "^2.0.0",
+    "mississippi": "^4.0.0",
+    "protocol-buffers-encodings": "^1.2.0"
+  },
+  "devDependencies": {
+    "brittle": "^3.3.2"
+  }
+}
