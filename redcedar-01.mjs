@@ -3,26 +3,21 @@
 - adds `cateogry` & `geo` encodings, can roudtrip data
 - does not include a header, so this roudtrip can only be done in process
 - recedar-01
-- first take at a header
+- first take at a header, includes name and version, and where header data 
+   starts and ends
  */
 
 import fs from 'node:fs'
+import fsp from 'node:fs/promises'
 import csv from 'csv-parser'
-import {pipe, through} from 'mississippi'
+import { Writable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 import enc from 'protocol-buffers-encodings'
 import lps from 'length-prefixed-stream'
+import b4a from 'b4a'
 
 const categories = {}
 
-// TODO should it be possible to move custom encodings into user land?
-// - API might have to be bigger since we are doing some silly
-// conditional stuff to make this work.
-// - we could potentially pull the conditional into the individual functions,
-// looking for an object to expand rather than just a singular value to encode
-// function encode ({field, value}, buffer, offset) {}
-// otherwise we could wrap all `enc` setups to consider field and value
-// or we could keep this internal, referencing out that category is a thing
-// to hook into, and that its supported by our encode / decode
 enc.category = enc.make(7,
   function encode (field, val, buffer, offset) {
     if (!Array.isArray(categories[field])) categories[field] = []
@@ -46,6 +41,10 @@ enc.category = enc.make(7,
   function encodingLength (field, val) {
     if (!Array.isArray(categories[field])) categories[field] = []
     let valIndex = categories[field].indexOf(val)
+    if (valIndex === -1) {
+      categories[field].push(val)
+      valIndex = categories[field].length - 1
+    }
     return enc.int32.encodingLength(valIndex)
   }
 )
@@ -83,11 +82,11 @@ const analysesHeaders = analyses.map(name => {
   return [
     {
       field: `${name}-dist`,
-      encoding: 'float',
+      encoder: 'float',
     },
     {
       field: `${name}-nfeat-period`,
-      encoding: 'category',
+      encoder: 'category',
     },
   ]
 }).reduce((acc, curr) => acc.concat(curr), [])
@@ -95,21 +94,23 @@ const analysesHeaders = analyses.map(name => {
 const userHeader = [
   {
     field: '',
-    encoding: 'int32',
+    encoder: 'int32',
   },
   {
     field: 'latitude',
-    encoding: 'geo'
+    encoder: 'geo'
   },
   {
     field: 'longitude',
-    encoding: 'geo'
+    encoder: 'geo'
   },
   {
     field: 'reclassified.tree.canopy.symptoms',
-    encoding: 'category',
+    encoder: 'category',
   },
 ].concat(analysesHeaders)
+
+const ta = TabularArchive()
 
 let header
 csvStream.on('headers', (_header) => {
@@ -119,8 +120,8 @@ csvStream.on('headers', (_header) => {
 const fieldSpecs = ({ row }) => (field) => {
   const fieldSpec = userHeader.find(s => s.field === field)
   let encoder = enc.string
-  if (fieldSpec?.encoding) {
-    encoder = enc[fieldSpec.encoding]
+  if (fieldSpec?.encoder) {
+    encoder = enc[fieldSpec.encoder]
   }
   if (!encoder) throw new Error(`Could not find encoder for field ${field}`)
   return {
@@ -143,14 +144,14 @@ function rowLength ({ row }) {
 function encodeRow ({ row }) {
   const specs = header.map(fieldSpecs({ row }))
   const { bufferLength } = rowLength({ row })
-  let buffer = Buffer.alloc(bufferLength)
+  let buffer = b4a.alloc(bufferLength)
   let bufOffset = 0
   specs.forEach(spec => {
     if (spec.encoder.type === 7) spec.encoder.encode(spec.field, spec.value, buffer, bufOffset)
     else spec.encoder.encode(spec.value, buffer, bufOffset)
     bufOffset += spec.encoder.encode.bytes
   })
-  return { buffer }
+  return { buffer, bufferLength }
 }
 
 function decodeRow ({ buffer }) {
@@ -170,27 +171,181 @@ function decodeRow ({ buffer }) {
   })
   return row
 }
-pipe(
+
+function TabularArchive () {
+  const name = 'TabularArchive'
+  const version = 1
+
+  const headerRow = {
+    buffer: undefined,
+    offset: 0,
+    bufferLength: 0,
+  }
+  const rowLengths = []
+
+  function getHeaderPrefix () {
+    let bufferLength = 0
+    bufferLength += enc.string.encodingLength(name)
+    bufferLength += enc.int32.encodingLength(version)
+    let buffer = b4a.alloc(bufferLength)
+    bufferLength = 0
+    enc.string.encode(name, buffer, bufferLength)
+    bufferLength += enc.string.encode.bytes
+    enc.int32.encode(version, buffer, bufferLength)
+    bufferLength += enc.int32.encode.bytes
+    return { buffer, bufferLength }
+  }
+
+  function addHeaderRow ({ header, userHeader }) {
+    const specs = header.map(field => {
+      const userSpec = userHeader.find(s => s.field === field)
+      let encoder = 'string'
+      if (userSpec?.encoder) {
+        encoder = userSpec.encoder
+      }
+      return {
+        field,
+        encoder,
+      }
+    })
+
+    const bufferLength = specs.map(s => {
+      return enc.string.encodingLength(s.field) +
+        enc.string.encodingLength(s.encoder) 
+    }).reduce((a, c) => a + c, 0)
+
+    const buffer = b4a.alloc(bufferLength)
+    let offset = 0
+    specs.forEach(s => {
+      enc.string.encode(s.field, buffer, offset)
+      offset += enc.string.encode.bytes
+      enc.string.encode(s.encoder, buffer, offset)
+      offset += enc.string.encode.bytes
+    })
+
+    headerRow.buffer = buffer
+    headerRow.bufferLength = bufferLength
+
+    return headerRow
+  }
+
+  function addDataRowLength ({ row }) {
+    const { bufferLength } = rowLength({ row })
+    rowLengths.push(bufferLength)
+  }
+
+  function assembleHeader () {
+    if (!headerRow.buffer) throw Error('Must store reference to the header row.')
+    if (rowLengths.length === 0) throw Error('Must use addDataRowLength to produce header into row data.')
+    
+    let bufferLength = 0
+    const headerPrefix = getHeaderPrefix()
+    bufferLength += headerPrefix.bufferLength
+
+    let offsetBufferLength = 0
+    // bufferLength here is the end of the header prefix
+    // header specs are encoded at int32 because we do not anticipate going
+    // above 2 billion header rows
+    const headerRowOffset = enc.int32.encodingLength(headerPrefix.bufferLength)
+    const headerRowLength = enc.int32.encodingLength(headerRow.bufferLength)
+    offsetBufferLength = headerRowOffset + headerRowLength
+
+    bufferLength += offsetBufferLength
+
+    let headerRowOffsetBuffer = b4a.alloc(offsetBufferLength)
+    enc.int32.encode(headerPrefix.bufferLength, headerRowOffsetBuffer, 0)
+    enc.int32.encode(headerRow.bufferLength, headerRowOffsetBuffer, headerRowOffset)
+    
+    let buffer = b4a.concat([
+      headerPrefix.buffer,
+      headerRowOffsetBuffer,
+    ], bufferLength)
+
+    return { buffer, bufferLength }
+  }
+
+  function decodeHeader ({ buffer }) {
+    let offset = 0
+    offset += enc.string.encodingLength(name)
+    offset += enc.int32.encodingLength(version)
+    const headerRowOffset = enc.int32.decode(buffer, offset)
+    offset += enc.int32.decode.bytes
+    const headerRowLength = enc.int32.decode(buffer, offset)
+    offset += enc.int32.decode.bytes
+    return {
+      headerRowOffset,
+      headerRowLength,
+    }
+  }
+
+  function headerRange () {
+    let bufferLength = 0
+    bufferLength += getHeaderPrefix().bufferLength
+    // int32 = max 4 bytes
+    // int64 = max 8 bytes
+    // 4 - headerRowOffset
+    // 4 - headerRowLength
+    bufferLength += (4 + 4)
+    // 8 - dataRowOffset
+    // 8 - dataRowLength
+    bufferLength += (8 + 8)
+    return { start: 0, end: bufferLength }
+  }
+
+  return {
+    getHeaderPrefix,
+    addHeaderRow,
+    addDataRowLength,
+    assembleHeader,
+    headerRange,
+    decodeHeader,
+  }
+}
+
+const readLengths = new Writable({
+  objectMode: true,
+  write: (row, enc, next) => {
+    ta.addDataRowLength({ row })
+    next()
+  },
+  flush: () => {},
+})
+
+await pipeline(
   fs.createReadStream('test/redcedar-poi-nearest-by-period.csv'),
   csvStream,
-  through.obj((row, enc, next) => {
-    const { buffer } = encodeRow({ row })
-    next(null, buffer)
-  }),
-  lps.encode(),
-  fs.createWriteStream('encoded.lp'),
-  (error) => {
-    console.log(error)
-    pipe(
-      fs.createReadStream('encoded.lp'),
-      lps.decode(),
-      through((buffer, enc, next) => {
-        const row = decodeRow({ buffer })
-        console.log(row)
-        next()
-      }),
-      (error) => {
-        console.log(error)
-      })
-  }
+  readLengths
 )
+
+const headerRow = ta.addHeaderRow({ header, userHeader })
+const taHeader = ta.assembleHeader()
+const writer = fs.createWriteStream('encoded-header.lp')
+writer.write(taHeader.buffer)
+writer.write(headerRow.buffer)
+
+
+writer.on('finish', async () => {
+  console.log('finished')
+  const fileHeader = await ReadHeader()
+  console.log({fileHeader})
+  // TODO pick up reading out the header row given our header descrption
+})
+
+writer.end()
+
+async function ReadHeader () {
+  return new Promise(async (resolve, reject) => {
+    const readHeader = new Writable({
+      write: (buffer, enc, next) => {
+        const decodedHeader = ta.decodeHeader({ buffer })
+        resolve(decodedHeader)
+        next()
+      }
+    })
+
+    await pipeline(
+      fs.createReadStream('encoded-header.lp', ta.headerRange()),
+      readHeader)
+  })
+
+}
