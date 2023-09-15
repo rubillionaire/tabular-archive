@@ -23,11 +23,10 @@ import csv from 'csv-parser'
 import { Writable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import enc from 'protocol-buffers-encodings'
-import lps from 'length-prefixed-stream'
 import b4a from 'b4a'
 
 function sum (arr) {
-  return arr.reduce((a,c) => a +c , 0)
+  return arr.reduce((a, c) => a + c , 0)
 }
 
 const categories = []
@@ -559,7 +558,7 @@ const readLengths = new Writable({
 })
 
 await pipeline(
-  fs.createReadStream('test/redcedar-poi-nearest-by-period.csv'),
+  fs.createReadStream('./test/user-supplied/redcedar-data.csv'),
   csvStream,
   readLengths
 )
@@ -587,7 +586,7 @@ if (typeof userIdForRow == 'function') {
   })
 
   await pipeline(
-    fs.createReadStream('test/redcedar-poi-nearest-by-period.csv'),
+    fs.createReadStream('./test/user-supplied/redcedar-data.csv'),
     csv(),
     readDataRowId
   )
@@ -607,7 +606,7 @@ const readDataRow = new Writable({
 })
 
 await pipeline(
-  fs.createReadStream('test/redcedar-poi-nearest-by-period.csv'),
+  fs.createReadStream('./test/user-supplied/redcedar-data.csv'),
   csv(),
   readDataRow
 )
