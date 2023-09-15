@@ -12,6 +12,8 @@ the headerRow from the file. lets read out categories
 - encode write read categories
 - recedar-04
 - encode write read data rows
+- redcedar-05
+- allow for defining a indexable row value
  */
 
 import assert from 'node:assert'
@@ -76,6 +78,14 @@ enc.geo = enc.make(6,
   }
 )
 
+// this is used to create space for the user supplied
+// `idEncoder`, which will get padded for at this length
+// to make the header size consistently the same size
+const maxEncoderTypeLength = Object.keys(enc)
+  .map(encoder => encoder.length)
+  .sort()
+  .pop()
+
 const csvStream = csv()
 
 const analyses = [
@@ -107,6 +117,10 @@ const userHeader = [
     encoder: 'int32',
   },
   {
+    field: 'id',
+    encoder: 'int32',
+  },
+  {
     field: 'latitude',
     encoder: 'geo'
   },
@@ -119,6 +133,20 @@ const userHeader = [
     encoder: 'category',
   },
 ].concat(analysesHeaders)
+
+const userIdForRow = ({ row }) => {
+  return parseInt(row.id)
+}
+
+const userIdEncoder = 'int32'
+
+function userIdEncoderFn () {
+  let encoder = enc.string
+  if (typeof userIdEncoder === 'string') {
+    encoder = enc[userIdEncoder]
+  }
+  return encoder
+}
 
 const ta = TabularArchive()
 
@@ -186,32 +214,63 @@ function TabularArchive () {
     buffer: undefined,
     bufferLength: 0,
   }
+  // array of bufferLengths, one for each row represented in the archive
   const rowLengths = []
+  // array of encoded id values, one for each row represented in the archive
+  const rowIds = []
 
+  /**
+   * return a partially filled buffer with the space allocated
+   * for all parts of the header. the `buffer` returned has
+   * the entire space alotment, bufferLength only has the
+   * two fixed pieces already inserted (`name` and `version`).
+   */
   function _getHeader () {
     let bufferLength = 0
     bufferLength += enc.string.encodingLength(name)
     bufferLength += enc.int32.encodingLength(version)
     // int32 = max 4 bytes
     // int64 = max 8 bytes
+    
     // 4 - headerRowOffset
     // 4 - headerRowLength
     bufferLength += (4 + 4)
+
     // 4 - categoryOffset
     // 4 - categoryLength
     bufferLength += (4 + 4)
+    
+    // string - dataRowIdEncoderType
+    bufferLength += enc.string.encodingLength('string'.padEnd(maxEncoderTypeLength, ' '))
+    // 4 - dataRowIdOffset
+    // 4 - dataRowIdLength
+    bufferLength += (4 + 4)
+    
     // 8 - dataRowOffset
     // 8 - dataRowLength
     bufferLength += (8 + 8)
+    
     let buffer = b4a.alloc(bufferLength)
     bufferLength = 0
+    
     enc.string.encode(name, buffer, bufferLength)
     bufferLength += enc.string.encode.bytes
     enc.int32.encode(version, buffer, bufferLength)
     bufferLength += enc.int32.encode.bytes
+    
     return { buffer, bufferLength }
   }
 
+  /**
+   * Given `header`, a complete `csv-parser` header row object,
+   * and a `userHeader` that further defines field level value
+   * encoders, return a complete `headerRow` array
+   *
+   * headerRow : [{ field : string, encoder : string }]
+   *
+   * The return value is this `headerRow` array stored
+   * in a buffer that can be decoded using the `bufferLength`
+   */
   function addHeaderRow ({ header, userHeader }) {
     const specs = header.map(field => {
       const userSpec = userHeader.find(s => s.field === field)
@@ -245,10 +304,19 @@ function TabularArchive () {
     return headerRow
   }
 
-  function addDataRowLength ({ row }) {
+  /**
+   * Stream all row values here and save relevant
+   * information stored
+   */
+  function addDataRow ({ row }) {
     const { bufferLength } = rowLength({ row })
     rowLengths.push(bufferLength)
-    return { bufferLength }
+    if (typeof userIdForRow === 'function') {
+      const encoder = userIdEncoderFn()
+      const id = userIdForRow({ row })
+      const bufferLength = encoder.encodingLength(id)
+      rowIds.push(bufferLength)
+    }
   }
 
   function getCategories () {
@@ -265,9 +333,13 @@ function TabularArchive () {
     return { buffer, bufferLength }
   }
 
+  function _getDataRowIdLength () {
+    const bufferLength = rowIds.reduce((a, c) => a + c, 0)
+    return { bufferLength }
+  }
+
   function _getDataRowLength () {
-    let bufferLength
-    bufferLength = rowLengths.map((rowLength, index) => {
+    const bufferLength = rowLengths.map((rowLength, index) => {
       return enc.int64.encodingLength(rowLength)
     }).reduce((a, c) => a + c, 0)
     return { bufferLength }
@@ -286,8 +358,8 @@ function TabularArchive () {
   }
 
   function getHeader () {
-    if (!headerRow.buffer) throw Error('Must store reference to the header row.')
-    if (rowLengths.length === 0) throw Error('Must use addDataRowLength to produce header into row data.')
+    if (!headerRow.buffer) throw Error('Must store reference to the header row using `addHeaderRow`.')
+    if (rowLengths.length === 0) throw Error('Must use `addDataRow` to produce header into row data.')
 
     const header = _getHeader()
     const headerCategories = getCategories()
@@ -309,12 +381,27 @@ function TabularArchive () {
     enc.int32.encode(headerCategoryLenghtValue, header.buffer, header.bufferLength)
     header.bufferLength += enc.int32.encode.bytes
 
-    const dataRowLength = _getDataRowLength()
+    let dataRowIdEncoderString = 'string'.padEnd(maxEncoderTypeLength, ' ')
+    if (typeof userIdEncoder === 'string') {
+      dataRowIdEncoderString = userIdEncoder.padEnd(maxEncoderTypeLength, ' ')
+    }
+    enc.string.encode(dataRowIdEncoderString, header.buffer, header.bufferLength)
+    header.bufferLength += enc.string.encode.bytes
 
-    const dataRowOffsetValue = headerCategoryLenghtValue
+    const dataRowIdOffsetValue = headerCategoryLenghtValue
+    enc.int32.encode(dataRowIdOffsetValue, header.buffer, header.bufferLength)
+    header.bufferLength += enc.int32.encode.bytes
+
+    const dataRowIdLength = _getDataRowIdLength()
+    const dataRowIdLengthValue = dataRowIdOffsetValue + dataRowIdLength.bufferLength
+    enc.int32.encode(dataRowIdLengthValue, header.buffer, header.bufferLength)
+    header.bufferLength += enc.int32.encode.bytes
+
+    const dataRowOffsetValue = dataRowIdLengthValue
     enc.int64.encode(dataRowOffsetValue, header.buffer, header.bufferLength)
     header.bufferLength += enc.int64.encode.bytes
-    
+
+    const dataRowLength = _getDataRowLength()    
     const dataRowLengthValue = dataRowOffsetValue + dataRowLength.bufferLength
     enc.int64.encode(dataRowLengthValue, header.buffer, header.bufferLength)
     header.bufferLength += enc.int64.encode.bytes
@@ -329,24 +416,38 @@ function TabularArchive () {
     const hVersion = enc.int32.decode(buffer, offset)
     offset += enc.int32.decode.bytes
     if (name !== hName || version !== hVersion) throw Error('oops')
+    
     const headerRowOffset = enc.int32.decode(buffer, offset)
     offset += enc.int32.decode.bytes
     const headerRowLength = enc.int32.decode(buffer, offset)
     offset += enc.int32.decode.bytes
+    
     const categoryOffset = enc.int32.decode(buffer, offset)
     offset += enc.int32.decode.bytes
     const categoryLength = enc.int32.decode(buffer, offset)
     offset += enc.int32.decode.bytes
+
+    const dataRowIdEncoder = enc.string.decode(buffer, offset).trim()
+    offset += enc.string.decode.bytes
+    const dataRowIdOffset = enc.int32.decode(buffer, offset)
+    offset += enc.int32.decode.bytes
+    const dataRowIdLength = enc.int32.decode(buffer, offset)
+    offset += enc.int32.decode.bytes
+    
     const dataRowOffset = enc.int64.decode(buffer, offset)
     offset += enc.int64.decode.bytes
     const dataRowLength = enc.int64.decode(buffer, offset)
     offset += enc.int64.decode.bytes
+    
     // data row buffers written starting at dataRowLength
     return {
       headerRowOffset,
       headerRowLength,
       categoryOffset,
       categoryLength,
+      dataRowIdEncoder,
+      dataRowIdOffset,
+      dataRowIdLength,
       dataRowOffset,
       dataRowLength,
     }
@@ -379,6 +480,21 @@ function TabularArchive () {
     return { categories }
   }
 
+  function decodeRowId ({ encoder, buffer }) {
+    if (buffer.length === 0) return { rowIds: [] }
+
+    let offset = 0
+    const rowIds = []
+    while (offset < buffer.length - 1) {
+      const rowId = encoder.decode(buffer, offset)
+      offset += encoder.decode.bytes
+      // console.log({rowId})
+      rowIds.push(rowId)
+    }
+
+    return { rowIds }
+  }
+
   function decodeDataRowLengths ({ buffer }) {
     let offset = 0
     const rowLengths = []
@@ -387,7 +503,6 @@ function TabularArchive () {
       offset += enc.int64.decode.bytes
       rowLengths.push(rowLength)
     }
-
     return { rowLengths }
   }
 
@@ -396,17 +511,17 @@ function TabularArchive () {
     return { start: 0, end: buffer.length }
   }
 
-  function dataRowBufferRange ({ fileHeader, rowLengths }) {
+  function dataRowBufferRangeQuery ({ fileHeader, rowLengths }) {
     return ({ start, end }) => {
+      // data starts at the end of the data row entries
       let dataStart = fileHeader.dataRowLength
-      let dataEnd = 0
       let count = 0
       if (start > 0) {
         for (let i = 0; i < start; i++) {
           dataStart += rowLengths[i]
         }
       }
-      dataEnd = dataStart
+      let dataEnd = dataStart
       for (let i = start; i < end; i++) {
         count += 1
         dataEnd += rowLengths[i]
@@ -418,10 +533,10 @@ function TabularArchive () {
       }
     }
   }
-
+  
   return {
     addHeaderRow,
-    addDataRowLength,
+    addDataRow,
     getHeader,
     getCategories,
     getDataRowLenths,
@@ -429,17 +544,16 @@ function TabularArchive () {
     decodeHeader,
     decodeHeaderRow,
     decodeCategory,
+    decodeRowId,
     decodeDataRowLengths,
-    dataRowBufferRange,
+    dataRowBufferRangeQuery,
   }
 }
 
-let firstDataRowLength
 const readLengths = new Writable({
   objectMode: true,
   write: (row, enc, next) => {
-    const { bufferLength } = ta.addDataRowLength({ row })
-    if (!firstDataRowLength) firstDataRowLength = bufferLength
+    ta.addDataRow({ row })
     next()
   },
 })
@@ -450,8 +564,6 @@ await pipeline(
   readLengths
 )
 
-console.log({ firstDataRowLength })
-
 const writer = fs.createWriteStream('encoded-header.lp')
 const headerRow = ta.addHeaderRow({ header, userHeader })
 const taHeader = ta.getHeader()
@@ -459,15 +571,36 @@ writer.write(taHeader.buffer)
 writer.write(headerRow.buffer)
 const taCategories = ta.getCategories()
 writer.write(taCategories.buffer)
+
+if (typeof userIdForRow == 'function') {
+  const encoder = userIdEncoderFn()
+  const readDataRowId = new Writable({
+    objectMode: true,
+    write: (row, enc, next) => {
+      const id = userIdForRow({ row })
+      const bufferLength = encoder.encodingLength(id)
+      let buffer = b4a.alloc(bufferLength)
+      encoder.encode(id, buffer, 0)
+      writer.write(buffer)
+      next()
+    },
+  })
+
+  await pipeline(
+    fs.createReadStream('test/redcedar-poi-nearest-by-period.csv'),
+    csv(),
+    readDataRowId
+  )
+}
+
 const dataRowLengths = ta.getDataRowLenths()
+const { rowLengths } = ta.decodeDataRowLengths(dataRowLengths)
 writer.write(dataRowLengths.buffer)
 
-let dataRowBuffer
 const readDataRow = new Writable({
   objectMode: true,
   write: (row, enc, next) => {
     const { buffer } = encodeRow({ row })
-    if (!dataRowBuffer) dataRowBuffer = buffer
     writer.write(buffer)
     next()
   },
@@ -483,20 +616,48 @@ writer.on('finish', async () => {
   const buf = await ReadEntireFile()
   const fileHeader = await ReadHeader()
   console.log({ fileHeader })
+  
   const headerRowBuffer = await ReadHeaderRow(fileHeader)
   const { headerRow } = ta.decodeHeaderRow({ buffer: headerRowBuffer })
+  
   const categoryBuffer = await ReadCategory(fileHeader)
   const { categories } = ta.decodeCategory({ buffer: categoryBuffer })
+  
+  const dataRowIdBuffer = await ReadDataRowId(fileHeader)
+  const { rowIds } = ta.decodeRowId({
+    buffer: dataRowIdBuffer,
+    encoder: enc[fileHeader.dataRowIdEncoder]
+  })
+
   const dataRowOffsetsBuffer = await ReadDataRowLengths(fileHeader)
-  const { rowLengths } =ta.decodeDataRowLengths({ buffer: dataRowOffsetsBuffer })
-  const dataRowBufferRangeFinder = ta.dataRowBufferRange({ fileHeader, rowLengths })
-  const range = dataRowBufferRangeFinder({ start: 0, end: 1 })
-  const dataRowBuffer = await ReadStartEnd(range)
-  let offset = 0
-  for (let i = 0; i < range.count; i++) {
-    const result = decodeRow({ headerRow, buffer: dataRowBuffer, offset })
-    offset += result.offset
-    // console.log({row: result.row})
+  const { rowLengths } = ta.decodeDataRowLengths({ buffer: dataRowOffsetsBuffer })
+  const dataRowBufferRangeFinder = ta.dataRowBufferRangeQuery({ fileHeader, rowLengths })
+  
+  // range query
+  {
+    const range = dataRowBufferRangeFinder({ start: 0, end: 1 })
+    const dataRowBuffer = await ReadStartEnd(range)
+    let offset = 0
+    for (let i = 0; i < range.count; i++) {
+      const result = decodeRow({ headerRow, buffer: dataRowBuffer, offset })
+      offset += result.offset
+      // console.log({row: result.row})
+    }
+  }
+
+  // id query
+  {
+    // TODO perhaps this should store only the dataRowIdBuffer, and decode
+    // the buffer, and find our value at the same time
+    const rowIndex = rowIds.indexOf(145779813)
+    const range = dataRowBufferRangeFinder({ start: rowIndex, end: rowIndex + 1 })
+    const dataRowBuffer = await ReadStartEnd(range)
+    let offset = 0
+    for (let i = 0; i < range.count; i++) {
+      const result = decodeRow({ headerRow, buffer: dataRowBuffer, offset })
+      offset += result.offset
+      // console.log({row: result.row})
+    }
   }
 })
 
@@ -537,10 +698,22 @@ async function ReadCategory ({
     end: categoryLength,
   })
 }
+
+async function ReadDataRowId ({
+    dataRowIdOffset,
+    dataRowIdLength,
+  }) {
+  return ReadStartEnd({
+    start: dataRowIdOffset,
+    end: dataRowIdLength,
+  })
+}
+
 async function ReadDataRowLengths ({
     dataRowOffset,
     dataRowLength,
   }) {
+  console.log({ dataRowOffset, dataRowLength })
   return ReadStartEnd({
     start: dataRowOffset,
     end: dataRowLength,
