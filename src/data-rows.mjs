@@ -1,3 +1,5 @@
+import assert from 'node:assert'
+import b4a from 'b4a'
 import { encoder as enc } from './encoder.mjs'
 
 export const dataRowEncoder = ({ header, userHeader }) => {

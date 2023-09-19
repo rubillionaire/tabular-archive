@@ -2,10 +2,10 @@ import test from 'brittle'
 import { categories } from '../src/encoder.mjs'
 import { readCsvHeaderRow, readCsvDataRows } from '../src/read-csv.mjs'
 import { encode, decode } from '../src/categories.mjs'
-import { dataRowEncoder } from '../src/data-row.mjs'
+import { dataRowEncoder } from '../src/data-rows.mjs'
 import { userHeader, filePath } from './user-supplied/redcedar.mjs'
 
-test('encode-decode', async (t) => {
+test('categpries:encode-deocde', async (t) => {
   const { header } = await readCsvHeaderRow({ filePath })
   const rowEncoder = dataRowEncoder({ header, userHeader })
   const onRow = async ({ row }) => {
@@ -17,6 +17,6 @@ test('encode-decode', async (t) => {
   await readCsvDataRows({ filePath, onRow })
   const { buffer } = await encode({ categories })
   const decoded = await decode({ buffer })
-  t.is(categories.length, decoded.categories.length, 'Same categories length')
+  t.alike(categories, decoded.categories, 'Categories value')
   t.end()
 })
