@@ -6,17 +6,17 @@ export const categories = []
 
 encoder.category = encoder.make(7,
   function encode (val, buffer, offset) {
-    let valIndex = categories.indexOf(val)
-    if (valIndex === -1) {
+    let valueIndex = categories.indexOf(val)
+    if (valueIndex === -1) {
       categories.push(val)
-      valIndex = categories.length - 1
+      valueIndex = categories.length - 1
     }
-    encoder.int32.encode(valIndex, buffer, offset)
+    encoder.int32.encode(valueIndex, buffer, offset)
     encode.bytes = encoder.int32.encode.bytes
     return buffer
   },
   function decode (buffer, offset) {
-    const valueIndex = encoder.int32.decode(buffer.offset)
+    const valueIndex = encoder.int32.decode(buffer, offset)
     decode.bytes = encoder.int32.decode.bytes
     // will need to reconstruct the categories[fields] array
     // from a header

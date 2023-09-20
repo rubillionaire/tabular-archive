@@ -43,7 +43,7 @@ enc.category = enc.make(7,
     return buffer
   },
   function decode (buffer, offset) {
-    const valueIndex = enc.int32.decode(buffer.offset)
+    const valueIndex = enc.int32.decode(buffer, offset)
     decode.bytes = enc.int32.decode.bytes
     // will need to reconstruct the categories[fields] array
     // from a header

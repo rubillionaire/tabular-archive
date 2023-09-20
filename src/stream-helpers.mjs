@@ -33,7 +33,7 @@ export async function ReadStartEnd ({ filePath, start, end }) {
         next()
       },
     })
-console.log({filePath, start, end})
+    
     await pipeline(
       fs.createReadStream(filePath, {
         start,

@@ -19,8 +19,7 @@ import {
 const RandomSampler = (sampleLength) => {
   let counter = -1
   const randomInRange = () => Math.floor(Math.random() * sampleLength)
-  // const positions = Array.from({ length: 5 }, () => randomInRange())
-  const positions = Array.from({ length: 1 }, () => 0)
+  const positions = Array.from({ length: 5 }, () => randomInRange())
   const sample = []
 
   return {
@@ -37,6 +36,10 @@ const RandomSampler = (sampleLength) => {
 }
 
 test('data-rows', async (t) => {
+  // TODO this `lengths` exercise should be moved to a place where
+  // we are supporting writing of the entire header. to write the
+  // header we need to know all pieces
+
   // find our encoding lengths to determine offsets that get used
   // in the header to let consumers know where to find data
   const lengths = {
@@ -60,7 +63,6 @@ test('data-rows', async (t) => {
   await readCsvDataRows({ filePath, onRow: onRowEncodeLengths })
 
   t.pass('Read in data rows and IDs for header creation')
-  console.log({ categories })
 
   const samples = {
     dataRows: RandomSampler(lengths.dataRows.length),
@@ -70,6 +72,7 @@ test('data-rows', async (t) => {
   // knowing our total buffer size we could try to create that buffer
   // and write to it, but it might be large, so we might as well use
   // our final interface, writing to a file
+  // we use our lengths above to know where to seek for row data
   
   const filePaths = {
     dataRows: 'redcedar-data-rows',
@@ -100,7 +103,6 @@ test('data-rows', async (t) => {
   await readCsvDataRows({ filePath, onRow: onRowEncode })
 
   t.pass('Wrote data rows.')
-  console.log({ categories })
 
   function BufferStartEndForBufferLengths (bufferLengths) {
     const sum = (accumulator, current) => accumulator + current
@@ -114,22 +116,32 @@ test('data-rows', async (t) => {
     }
   }
 
-  // TODO we sample results to verify after reading/writing, lets do it here
   const rowDecoder = dataRowDecoder({ headerRow })
   const bufferStartEndForIndex = BufferStartEndForBufferLengths(lengths.dataRows)
+  const matchingFields = [
+    'period-all',
+    'period-eph',
+    'period-int',
+    'period-min-eph',
+    'period-min-int',
+    'period-per',
+    'period-unk',
+  ].map(name => [`${name}-nfeat-id`, `${name}-nfeat-period`])
+    .reduce((acc, curr) => acc.concat(curr), [])
+
   for (const sample of samples.dataRows.sample) {
     const { index, value } = sample
     const { start, end } = bufferStartEndForIndex(index)
-    console.log({index, start, end})
     const buffer = await ReadStartEnd({
       filePath: filePaths.dataRows,
       start,
       end,
     })
     const { row } = rowDecoder({ buffer })
-    console.log({value})
-    console.log({row})
-    t.alike(value, row, 'Random sample is alike.')
+    for (const field of matchingFields) {
+      t.is(row[field], value[field], `Random sample (index:${index}) field ${field} is same.`)  
+    }
+    
   }
 
   t.pass('Sampled data.')

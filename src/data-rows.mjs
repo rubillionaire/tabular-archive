@@ -7,11 +7,11 @@ export const dataRowEncoder = ({ headerRow }) => {
     return headerRow.map((fieldSpec) => {
       const encoder = enc[fieldSpec.encoder]
       if (!encoder) throw new Error(`Could not find encoder for field ${fieldSpec.field}`)
-        return {
-          encoder,
-          value: row[fieldSpec.field],
-          field: fieldSpec.field,
-        }
+      return {
+        encoder,
+        value: row[fieldSpec.field],
+        field: fieldSpec.field,
+      }
     })
   }
 
