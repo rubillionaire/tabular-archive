@@ -1,5 +1,6 @@
 import test from 'brittle'
 import b4a from 'b4a'
+import fsp from 'node:fs/promises'
 import { categories } from '../src/encoder.mjs'
 import { create } from '../src/header-row.mjs'
 import { readCsvHeaderRow, readCsvDataRows } from '../src/read-csv.mjs'
@@ -141,10 +142,14 @@ test('data-rows', async (t) => {
     for (const field of matchingFields) {
       t.is(row[field], value[field], `Random sample (index:${index}) field ${field} is same.`)  
     }
-    
   }
 
   t.pass('Sampled data.')
+
+  for (const key in filePaths) {
+    const filePath = filePaths[key]
+    await fsp.unlink(filePath)
+  }
   
   t.end()
 })
