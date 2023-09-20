@@ -1,12 +1,13 @@
 import test from 'brittle'
 import { readCsvHeaderRow } from '../src/read-csv.mjs'
-import { encode, decode } from '../src/header-row.mjs'
+import { create, encode, decode } from '../src/header-row.mjs'
 import { userHeader, filePath } from './user-supplied/redcedar.mjs'
 
 test('header-rows:encode-decode', async (t) => {
   const { header } = await readCsvHeaderRow({ filePath })
-  const { buffer } = await encode({ header, userHeader })
-  const { headerRow } = await decode({ buffer })
-  t.is(header.length, headerRow.length, 'Same header length')
+  const created = await create({ header, userHeader })
+  const { buffer } = await encode(created)
+  const decoded = await decode({ buffer })
+  t.alike(created.headerRow, decoded.headerRow, 'Header row is alike')
   t.end()
 })

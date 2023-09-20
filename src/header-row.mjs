@@ -1,11 +1,11 @@
 import b4a from 'b4a'
 import { encoder as enc } from './encoder.mjs'
 
-export const encode = ({ header, userHeader=[] }) => {
-  const specs = header.map(field => {
+export const create = ({ header, userHeader=[] }) => {
+  const headerRow = header.map(field => {
     const userSpec = userHeader.find(s => s.field === field)
     let encoder = 'string'
-    if (userSpec?.encoder) {
+    if (typeof userSpec?.encoder === 'string') {
       encoder = userSpec.encoder
     }
     return {
@@ -13,15 +13,19 @@ export const encode = ({ header, userHeader=[] }) => {
       encoder,
     }
   })
+  
+  return { headerRow }
+}
 
-  let bufferLength = specs.map(s => {
+export const encode = ({ headerRow }) => {
+  let bufferLength = headerRow.map(s => {
     return enc.string.encodingLength(s.field) +
       enc.string.encodingLength(s.encoder) 
   }).reduce((a, c) => a + c, 0)
 
   const buffer = b4a.alloc(bufferLength)
   bufferLength = 0
-  specs.forEach(s => {
+  headerRow.forEach(s => {
     enc.string.encode(s.field, buffer, bufferLength)
     bufferLength += enc.string.encode.bytes
     enc.string.encode(s.encoder, buffer, bufferLength)
