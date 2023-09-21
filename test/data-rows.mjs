@@ -2,7 +2,7 @@ import test from 'brittle'
 import b4a from 'b4a'
 import fsp from 'node:fs/promises'
 import { gzipSync, gunzipSync } from 'fflate'
-import { categories } from '../src/encoder.mjs'
+import { encoder as enc, categories } from '../src/encoder.mjs'
 import { create } from '../src/header-row.mjs'
 import { readCsvHeaderRow, readCsvDataRows } from '../src/read-csv.mjs'
 import { dataRowEncoder, dataRowDecoder } from '../src/data-rows.mjs'
@@ -20,8 +20,9 @@ import {
 
 const RandomSampler = (sampleLength) => {
   let counter = -1
+  const sampleSize = 5
   const randomInRange = () => Math.floor(Math.random() * sampleLength)
-  const positions = Array.from({ length: 5 }, () => randomInRange())
+  const positions = Array.from({ length: sampleSize }, () => randomInRange())
   const sample = []
 
   return {
@@ -57,7 +58,12 @@ test('data-rows', async (t) => {
       // lengths.dataRows.push(bufferLength)
       const { buffer } = rowEncoder.encode({ row })
       const compressedBuffer = gzipSync(buffer)
-      lengths.dataRows.push(compressedBuffer.length)
+      // lengths.dataRows.push(compressedBuffer.length)
+      // write out the value encoded in a buffer instead
+      const encodedLengthBuffer = b4a.alloc(enc.int64.encodingLength(compressedBuffer.length))
+      enc.int64.encode(compressedBuffer.length, encodedLengthBuffer, 0)
+      console.log({encodedLengthBuffer})
+      lengths.dataRows.push(encodedLengthBuffer)
     }
     {
       const id = userIdForRow({ row })
@@ -112,10 +118,15 @@ test('data-rows', async (t) => {
   t.pass('Wrote data rows.')
 
   function BufferStartEndForBufferLengths (bufferLengths) {
-    const sum = (accumulator, current) => accumulator + current
+    const sum = (accumulator, current) => {
+      const decoded = enc.int64.decode(current, 0)
+      return accumulator + decoded
+    }
     return (index) => {
       let start = bufferLengths.slice(0, index).reduce(sum, 0)
-      let end = start + bufferLengths.slice(index, index + 1)[0]
+      const encodedBuffer = bufferLengths.slice(index, index + 1)[0]
+      const decodedIndex = enc.int64.decode(encodedBuffer, 0)
+      let end = start + decodedIndex
       return {
         start,
         end,
