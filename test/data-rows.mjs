@@ -10,9 +10,10 @@ import {
   AwaitableWriteStream,
   ReadStartEnd,
 } from '../src/stream-helpers.mjs'
+import { userIdEncoderFn } from '../src/user-supplied.mjs'
 import {
+  csvFilePath,
   userHeader,
-  filePath,
   userIdForRow,
   userIdEncoder,
 } from './user-supplied/redcedar.mjs'
@@ -49,9 +50,10 @@ test('data-rows', async (t) => {
     dataRows: [],
     dataRowIds: [],
   }
-  const { header } = await readCsvHeaderRow({ filePath })
+  const { header } = await readCsvHeaderRow({ filePath: csvFilePath })
   const { headerRow } = create({ header, userHeader })
   const rowEncoder = dataRowEncoder({ headerRow })
+  const dataRowIdEncoder = userIdEncoderFn({ idEncoder: userIdEncoder })
   const onRowEncodeLengths = async ({ row }) => {
     {
       // const { bufferLength } = rowEncoder.encodingLength({ row })
@@ -62,16 +64,15 @@ test('data-rows', async (t) => {
       // write out the value encoded in a buffer instead
       const encodedLengthBuffer = b4a.alloc(enc.int64.encodingLength(compressedBuffer.length))
       enc.int64.encode(compressedBuffer.length, encodedLengthBuffer, 0)
-      console.log({encodedLengthBuffer})
       lengths.dataRows.push(encodedLengthBuffer)
     }
     {
       const id = userIdForRow({ row })
-      const bufferLength = userIdEncoder.encodingLength(id)
+      const bufferLength = dataRowIdEncoder.encodingLength(id)
       lengths.dataRowIds.push(bufferLength)
     }
   }
-  await readCsvDataRows({ filePath, onRow: onRowEncodeLengths })
+  await readCsvDataRows({ filePath: csvFilePath, onRow: onRowEncodeLengths })
 
   t.pass('Read in data rows and IDs for header creation')
 
@@ -106,14 +107,17 @@ test('data-rows', async (t) => {
     }
     {
       const id = userIdForRow({ row })
-      const bufferLength = userIdEncoder.encodingLength(id)
+      const bufferLength = dataRowIdEncoder.encodingLength(id)
       let buffer = b4a.alloc(bufferLength)
-      userIdEncoder.encode(id, buffer, 0)
+      dataRowIdEncoder.encode(id, buffer, 0)
       writers.dataRowIds.write(buffer)
       samples.dataRowIds.save(row)
     }
   }
-  await readCsvDataRows({ filePath, onRow: onRowEncode })
+  await readCsvDataRows({ filePath: csvFilePath, onRow: onRowEncode })
+  for (const key in writers) {
+    await writers[key].end()
+  }
 
   t.pass('Wrote data rows.')
 
