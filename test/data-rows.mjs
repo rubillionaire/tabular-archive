@@ -1,6 +1,7 @@
 import test from 'brittle'
 import b4a from 'b4a'
 import fsp from 'node:fs/promises'
+import { gzipSync, gunzipSync } from 'fflate'
 import { categories } from '../src/encoder.mjs'
 import { create } from '../src/header-row.mjs'
 import { readCsvHeaderRow, readCsvDataRows } from '../src/read-csv.mjs'
@@ -52,8 +53,11 @@ test('data-rows', async (t) => {
   const rowEncoder = dataRowEncoder({ headerRow })
   const onRowEncodeLengths = async ({ row }) => {
     {
-      const { bufferLength } = rowEncoder.encodingLength({ row })
-      lengths.dataRows.push(bufferLength)  
+      // const { bufferLength } = rowEncoder.encodingLength({ row })
+      // lengths.dataRows.push(bufferLength)
+      const { buffer } = rowEncoder.encode({ row })
+      const compressedBuffer = gzipSync(buffer)
+      lengths.dataRows.push(compressedBuffer.length)
     }
     {
       const id = userIdForRow({ row })
@@ -89,7 +93,9 @@ test('data-rows', async (t) => {
   const onRowEncode = async ({ row }) => {
     {
       const { buffer } = rowEncoder.encode({ row })
-      writers.dataRows.write(buffer)
+      // writers.dataRows.write(buffer)
+      const compressedBuffer = gzipSync(buffer)
+      writers.dataRows.write(compressedBuffer)
       samples.dataRows.save(row)
     }
     {
@@ -138,7 +144,9 @@ test('data-rows', async (t) => {
       start,
       end,
     })
-    const { row } = rowDecoder({ buffer })
+    // const { row } = rowDecoder({ buffer })
+    const uncompressedBuffer = gunzipSync(buffer)
+    const { row } = rowDecoder({ buffer: uncompressedBuffer })
     for (const field of matchingFields) {
       t.is(row[field], value[field], `Random sample (index:${index}) field ${field} is same.`)  
     }
