@@ -117,6 +117,7 @@ export const decode = async ({ archiveFilePath }) => {
   return {
     rowCount,
     getRowBySequence,
+    getRowById,
   }
 
   function decodeDataRowIdsBuffer ({ buffer, offset=0 }) {
@@ -154,5 +155,11 @@ export const decode = async ({ archiveFilePath }) => {
     const buffer = gunzipSync(compressedBuffer)
     const { row } = rowDecoder({ buffer })
     return { row }
+  }
+
+  async function getRowById ({ id }) {
+    const index = dataRowIds.indexOf(id)
+    if (index === -1) throw new Error(`No id value ${id} in this archive`)
+    return getRowBySequence({ rowNumber: index })
   }
 }

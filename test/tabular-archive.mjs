@@ -41,6 +41,7 @@ test('populate-sampler', async (t) => {
     sampler.save(row)
   }
   await readCsvDataRows({  filePath: csvFilePath, onRow })
+  t.pass('Populated a random sample of data to verify against the decoder.')
 })
 
 
@@ -65,9 +66,18 @@ test('csv-decode', async (t) => {
   const decoder = await decode({ archiveFilePath })
 
   for (const { index, value } of sampler.sample) {
-    const { row } = await decoder.getRowBySequence({ rowNumber: index })
-    for (const field of matchingFields) {
-      t.is(row[field], value[field], `Random sample (index:${index}) field ${field} is same.`)  
+    {
+      const { row } = await decoder.getRowBySequence({ rowNumber: index })
+      for (const field of matchingFields) {
+        t.is(row[field], value[field], `By sequence: random sample (index:${index}) field ${field} is same.`)  
+      }
+    }
+    {
+      const id = userIdForRow({ row: value })
+      const { row } = await decoder.getRowById({ id })
+      for (const field of matchingFields) {
+        t.is(row[field], value[field], `By ID: random sample (index:${index}) field ${field} is same.`)  
+      }
     }
   }
 
