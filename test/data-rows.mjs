@@ -17,27 +17,8 @@ import {
   userIdForRow,
   userIdEncoder,
 } from './user-supplied/redcedar.mjs'
-
-
-const RandomSampler = (sampleLength) => {
-  let counter = -1
-  const sampleSize = 5
-  const randomInRange = () => Math.floor(Math.random() * sampleLength)
-  const positions = Array.from({ length: sampleSize }, () => randomInRange())
-  const sample = []
-
-  return {
-    save: (value) => {
-      counter += 1
-      if (positions.indexOf(counter) === -1) return
-      sample.push({
-        index: counter,
-        value: { ...value },
-      })
-    },
-    sample,
-  }
-}
+import { RandomSampler } from './util/random-sampler.mjs'
+import { matchingFields } from './util/redcedar.mjs'
 
 test('data-rows', async (t) => {
   // TODO this `lengths` exercise should be moved to a place where
@@ -77,8 +58,8 @@ test('data-rows', async (t) => {
   t.pass('Read in data rows and IDs for header creation')
 
   const samples = {
-    dataRows: RandomSampler(lengths.dataRows.length),
-    dataRowIds: RandomSampler(lengths.dataRowIds.length),
+    dataRows: RandomSampler({ sampleLength: lengths.dataRows.length }),
+    dataRowIds: RandomSampler({ sampleLength: lengths.dataRowIds.length }),
   }
 
   // knowing our total buffer size we could try to create that buffer
@@ -140,16 +121,6 @@ test('data-rows', async (t) => {
 
   const rowDecoder = dataRowDecoder({ headerRow })
   const bufferStartEndForIndex = BufferStartEndForBufferLengths(lengths.dataRows)
-  const matchingFields = [
-    'period-all',
-    'period-eph',
-    'period-int',
-    'period-min-eph',
-    'period-min-int',
-    'period-per',
-    'period-unk',
-  ].map(name => [`${name}-nfeat-id`, `${name}-nfeat-period`])
-    .reduce((acc, curr) => acc.concat(curr), [])
 
   for (const sample of samples.dataRows.sample) {
     const { index, value } = sample

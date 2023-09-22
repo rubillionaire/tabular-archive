@@ -41,9 +41,11 @@ export const readCsvHeaderRow = async ({ filePath }) => {
 }
 
 export const readCsvDataRows = async ({ filePath, onRow }) => {
+  let rowCount = 0
   const sink = new Writable({
     objectMode: true,
     write: async (row, enc, next) => {
+      rowCount += 1
       await onRow({ row })
       next()
     },
@@ -53,4 +55,6 @@ export const readCsvDataRows = async ({ filePath, onRow }) => {
     fs.createReadStream(filePath),
     csv(),
     sink)
+
+  return { rowCount }
 }

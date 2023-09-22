@@ -1,8 +1,11 @@
 import encoder from 'protocol-buffers-encodings'
 
-export { encoder}
+export { encoder }
 
-export const categories = []
+export let categories = []
+export const setCategories = (c) => {
+  categories = c
+}
 
 encoder.category = encoder.make(7,
   function encode (val, buffer, offset) {

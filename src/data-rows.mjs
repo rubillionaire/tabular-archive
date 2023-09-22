@@ -45,6 +45,7 @@ export const dataRowEncoder = ({ headerRow }) => {
 
 export const dataRowDecoder = ({ headerRow }) => {
   return ({ buffer, offset=0 }) => {
+    console.log({buffer})
     const row = {}
     headerRow.forEach(headerSpec => {
       const encoder = enc[headerSpec.encoder]
