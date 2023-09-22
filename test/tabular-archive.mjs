@@ -1,4 +1,5 @@
 import test from 'brittle'
+import fsp from 'node:fs/promises'
 import {
   csvFilePath,
   userHeader,
@@ -80,6 +81,8 @@ test('csv-decode', async (t) => {
       }
     }
   }
+
+  await fsp.unlink(archiveFilePath)
 
   t.pass('Successfully decode the tabular-archive header')
 })

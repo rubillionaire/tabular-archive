@@ -84,7 +84,7 @@ export const decode = async ({ archiveFilePath }) => {
   })
   const archiveHeader = headerArchiveDecode({ buffer: archiveHeaderBuffer })
   const { dataRowIdsEncoderString } = archiveHeader
-  // this is where the 
+  // this is where the data starts
   const startOfDataRows = archiveHeader.dataRowLengthsOffsetEnd
   const userIdEncoder = enc[dataRowIdsEncoderString]
 
@@ -116,6 +116,7 @@ export const decode = async ({ archiveFilePath }) => {
 
   return {
     rowCount,
+    categories,
     getRowBySequence,
     getRowById,
   }
@@ -160,6 +161,6 @@ export const decode = async ({ archiveFilePath }) => {
   async function getRowById ({ id }) {
     const index = dataRowIds.indexOf(id)
     if (index === -1) throw new Error(`No id value ${id} in this archive`)
-    return getRowBySequence({ rowNumber: index })
+    return await getRowBySequence({ rowNumber: index })
   }
 }
