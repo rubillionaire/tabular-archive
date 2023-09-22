@@ -79,6 +79,7 @@ export async function encode ({
       },
       {
         name: 'dataRowIdEncoderString',
+        doNotInlineInArchive: true,
         archiveHeaderInsert: async ({ archiveHeader }) => {
           // we only write the string to the header, we don't bump the fileHead
           // but we do bump our position in the archiveHeader.bufferLength
@@ -164,31 +165,21 @@ export async function encode ({
   )
   enc.string.encode(dataRowIdEncoderString, dataRowIdEncoderBuffer, 0)
   archivePartsNamed.dataRowIdEncoderString.tmpFile.write(dataRowIdEncoderBuffer)
-  let counter = -1
+  
   const onRow = ({ row }) => {
     const { buffer } = rowEncoder.encode({ row })
     const compressedBuffer = gzipSync(buffer)
     archivePartsNamed.dataRows.tmpFile.write(compressedBuffer)
 
-    counter += 1
-    if (counter === 0) console.log({
-      compressedBuffer,
-      length: compressedBuffer.length,
-    })
-
     const encodedLengthBuffer = b4a.alloc(
       enc.int64.encodingLength(compressedBuffer.length)
     )
     enc.int64.encode(compressedBuffer.length, encodedLengthBuffer, 0)
-    if (counter === 0) {
-      const decodedLength = enc.int64.decode(encodedLengthBuffer, 0)
-      console.log({decodedLength})
-    }
     archivePartsNamed.dataRowLengths.tmpFile.write(encodedLengthBuffer)
 
     if (typeof userIdForRow === 'function') {
       const id = userIdForRow({ row })
-      if (counter === 0) console.log({id})
+      
       const bufferLength = dataRowIdEncoder.encodingLength(id)
       let buffer = b4a.alloc(bufferLength)
       dataRowIdEncoder.encode(id, buffer, 0)
@@ -224,6 +215,7 @@ export async function encode ({
     })
   }
   for (const part of archiveParts) {
+    if (part.doNotInlineInArchive === true) continue
     await pipeline(
       fs.createReadStream(part.tmpFilePath),
       concatStream())

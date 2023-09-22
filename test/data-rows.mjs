@@ -140,10 +140,10 @@ test('data-rows', async (t) => {
 
   t.pass('Sampled data.')
 
-  for (const key in filePaths) {
-    const filePath = filePaths[key]
-    await fsp.unlink(filePath)
-  }
+  // for (const key in filePaths) {
+  //   const filePath = filePaths[key]
+  //   await fsp.unlink(filePath)
+  // }
   
   t.end()
 })

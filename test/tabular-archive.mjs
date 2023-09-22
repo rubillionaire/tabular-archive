@@ -66,7 +66,6 @@ test('csv-decode', async (t) => {
 
   for (const { index, value } of sampler.sample) {
     const { row } = await decoder.getRowBySequence({ rowNumber: index })
-    console.log({ row })
     for (const field of matchingFields) {
       t.is(row[field], value[field], `Random sample (index:${index}) field ${field} is same.`)  
     }

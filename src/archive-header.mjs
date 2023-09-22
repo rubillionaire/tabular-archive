@@ -65,6 +65,7 @@ export const decode = ({ buffer, offset=0 }) => {
     offset += enc.string.decode.bytes
     const hVersion = enc.int32.decode(buffer, offset)
     offset += enc.int32.decode.bytes
+
     if (name !== hName || version !== hVersion) throw Error(`Archive does not conform to v${version}`)
     
     const headerRowOffsetStart = enc.int32.decode(buffer, offset)
@@ -79,6 +80,7 @@ export const decode = ({ buffer, offset=0 }) => {
 
     const dataRowIdsEncoderString = enc.string.decode(buffer, offset).trim()
     offset += enc.string.decode.bytes
+    
     const dataRowIdsOffsetStart = enc.int32.decode(buffer, offset)
     offset += enc.int32.decode.bytes
     const dataRowIdsOffsetEnd = enc.int32.decode(buffer, offset)

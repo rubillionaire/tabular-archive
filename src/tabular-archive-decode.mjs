@@ -83,7 +83,6 @@ export const decode = async ({ archiveFilePath }) => {
     filePath: archiveFilePath,
   })
   const archiveHeader = headerArchiveDecode({ buffer: archiveHeaderBuffer })
-  console.log({archiveHeader})
   const { dataRowIdsEncoderString } = archiveHeader
   // this is where the 
   const startOfDataRows = archiveHeader.dataRowLengthsOffsetEnd
@@ -107,7 +106,6 @@ export const decode = async ({ archiveFilePath }) => {
     ...archiveHeader,
   })
   const dataRowIds = decodeDataRowIdsBuffer({ buffer: dataRowIdsBuffer })
-  console.log({firstId: dataRowIds[0]})
 
   const dataRowLengthsBuffer = await ReadDataRowLengths(readOptions)
   const dataRowLengths = decodeRowLengthsBuffer({ buffer: dataRowLengthsBuffer })
@@ -135,7 +133,6 @@ export const decode = async ({ archiveFilePath }) => {
     const lengths = []
     while (offset < buffer.length - 1) {
       const len = enc.int64.decode(buffer, offset)
-      if (offset === 0) console.log({ len })
       offset += enc.int64.decode.bytes
       lengths.push(len)
     }
@@ -147,20 +144,14 @@ export const decode = async ({ archiveFilePath }) => {
   }
 
   async function getRowBySequence ({ rowNumber }) {
-    console.log({rowNumber})
     const start = dataRowLengths.slice(0, rowNumber).reduce(sum, startOfDataRows)
     const end = start + dataRowLengths.slice(rowNumber, rowNumber + 1)[0]
-    console.log({start,end, diff: end-start})
     const compressedBuffer = await ReadStartEnd({
       filePath: archiveFilePath,
       start,
       end,
     })
-    console.log({compressedBuffer})
-    // const buffer = gunzipSync(b4a.from(compressedBuffer, 'base64'))
-    // const buffer = gunzipSync(compressedBuffer)
-    const buffer = gunzipSync(new Uint8Array(compressedBuffer.buffer))
-    console.log({buffer})
+    const buffer = gunzipSync(compressedBuffer)
     const { row } = rowDecoder({ buffer })
     return { row }
   }
