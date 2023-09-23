@@ -51,7 +51,7 @@ export function create () {
   bufferLength += enc.int32.encode.bytes
 
   // start writing data after the header
-  let fileHead = buffer.length
+  let fileHead = buffer.byteLength
   
   return {
     buffer,
@@ -61,46 +61,47 @@ export function create () {
 }
 
 export const decode = ({ buffer, offset=0 }) => {
-    const hName = enc.string.decode(buffer, offset)
-    offset += enc.string.decode.bytes
-    const hVersion = enc.int32.decode(buffer, offset)
-    offset += enc.int32.decode.bytes
+  console.log({ buffer })
+  const hName = enc.string.decode(buffer, offset)
+  offset += enc.string.decode.bytes
+  const hVersion = enc.int32.decode(buffer, offset)
+  offset += enc.int32.decode.bytes
+  console.log({ hName, hVersion })
+  if (name !== hName || version !== hVersion) throw Error(`Archive does not conform to v${version}`)
+  
+  const headerRowOffsetStart = enc.int32.decode(buffer, offset)
+  offset += enc.int32.decode.bytes
+  const headerRowOffsetEnd = enc.int32.decode(buffer, offset)
+  offset += enc.int32.decode.bytes
+  
+  const categoriesOffsetStart = enc.int32.decode(buffer, offset)
+  offset += enc.int32.decode.bytes
+  const categoriesOffsetEnd = enc.int32.decode(buffer, offset)
+  offset += enc.int32.decode.bytes
 
-    if (name !== hName || version !== hVersion) throw Error(`Archive does not conform to v${version}`)
-    
-    const headerRowOffsetStart = enc.int32.decode(buffer, offset)
-    offset += enc.int32.decode.bytes
-    const headerRowOffsetEnd = enc.int32.decode(buffer, offset)
-    offset += enc.int32.decode.bytes
-    
-    const categoriesOffsetStart = enc.int32.decode(buffer, offset)
-    offset += enc.int32.decode.bytes
-    const categoriesOffsetEnd = enc.int32.decode(buffer, offset)
-    offset += enc.int32.decode.bytes
-
-    const dataRowIdsEncoderString = enc.string.decode(buffer, offset).trim()
-    offset += enc.string.decode.bytes
-    
-    const dataRowIdsOffsetStart = enc.int32.decode(buffer, offset)
-    offset += enc.int32.decode.bytes
-    const dataRowIdsOffsetEnd = enc.int32.decode(buffer, offset)
-    offset += enc.int32.decode.bytes
-    
-    const dataRowLengthsOffsetStart = enc.int64.decode(buffer, offset)
-    offset += enc.int64.decode.bytes
-    const dataRowLengthsOffsetEnd = enc.int64.decode(buffer, offset)
-    offset += enc.int64.decode.bytes
-    
-    // data row buffers written starting at dataRowLength
-    return {
-      headerRowOffsetStart,
-      headerRowOffsetEnd,
-      categoriesOffsetStart,
-      categoriesOffsetEnd,
-      dataRowIdsEncoderString,
-      dataRowIdsOffsetStart,
-      dataRowIdsOffsetEnd,
-      dataRowLengthsOffsetStart,
-      dataRowLengthsOffsetEnd,
-    }
+  const dataRowIdsEncoderString = enc.string.decode(buffer, offset).trim()
+  offset += enc.string.decode.bytes
+  
+  const dataRowIdsOffsetStart = enc.int32.decode(buffer, offset)
+  offset += enc.int32.decode.bytes
+  const dataRowIdsOffsetEnd = enc.int32.decode(buffer, offset)
+  offset += enc.int32.decode.bytes
+  
+  const dataRowLengthsOffsetStart = enc.int64.decode(buffer, offset)
+  offset += enc.int64.decode.bytes
+  const dataRowLengthsOffsetEnd = enc.int64.decode(buffer, offset)
+  offset += enc.int64.decode.bytes
+  
+  // data row buffers written starting at dataRowLength
+  return {
+    headerRowOffsetStart,
+    headerRowOffsetEnd,
+    categoriesOffsetStart,
+    categoriesOffsetEnd,
+    dataRowIdsEncoderString,
+    dataRowIdsOffsetStart,
+    dataRowIdsOffsetEnd,
+    dataRowLengthsOffsetStart,
+    dataRowLengthsOffsetEnd,
+  }
 }

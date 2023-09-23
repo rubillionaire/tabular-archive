@@ -18,6 +18,9 @@
     "protocol-buffers-encodings": "^1.2.0"
   },
   "devDependencies": {
-    "brittle": "^3.3.2"
+    "brittle": "^3.3.2",
+    "http-server": "^14.1.1",
+    "serve": "^14.2.1",
+    "serve-handler": "^6.1.5"
   }
 }

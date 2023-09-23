@@ -19,67 +19,54 @@ import {
 } from './encoder.mjs'
 import { dataRowDecoder } from './data-rows.mjs'
 
-export async function ReadArchiveHeader ({ filePath }) {
-  const emptyArchiveHeader = headerArchiveCreate()
-  const start = 0
-  const end = emptyArchiveHeader.buffer.length
-  return ReadStartEnd({
-    filePath,
-    start,
-    end,
-  })
+export const readArchiveRanges = ({ readRange }) => {
+  return {
+    archiveHeader: async ({ filePath }) => {
+      const emptyArchiveHeader = headerArchiveCreate()
+      const start = 0
+      const end = emptyArchiveHeader.buffer.byteLength
+      return readRange({
+        filePath,
+        start,
+        end,
+      })
+    },
+    headerRow: async ({ filePath, headerRowOffsetStart, headerRowOffsetEnd }) => {
+      return readRange({
+        filePath,
+        start: headerRowOffsetStart,
+        end: headerRowOffsetEnd,
+      })
+    },
+    categories: async ({ filePath, categoriesOffsetStart, categoriesOffsetEnd }) => {
+      return readRange({
+        filePath,
+        start: categoriesOffsetStart,
+        end: categoriesOffsetEnd,
+      })
+    },
+    dataRowIds: async ({ filePath, dataRowIdsOffsetStart, dataRowIdsOffsetEnd }) => {
+      return readRange({
+        filePath,
+        start: dataRowIdsOffsetStart,
+        end: dataRowIdsOffsetEnd,
+      })
+    },
+    dataRowLengths: async ({ filePath, dataRowLengthsOffsetStart, dataRowLengthsOffsetEnd }) => {
+      return readRange({
+        filePath,
+        start: dataRowLengthsOffsetStart,
+        end: dataRowLengthsOffsetEnd,
+      })
+    },
+  }
 }
 
-export async function ReadHeaderRow ({
-    filePath,
-    headerRowOffsetStart,
-    headerRowOffsetEnd,
-  }) {
-  return ReadStartEnd({
-    filePath,
-    start: headerRowOffsetStart,
-    end: headerRowOffsetEnd,
-  })
-}
+export const decode = async ({ archiveFilePath, readRange }) => {
 
-export async function ReadCategories ({
-    filePath,
-    categoriesOffsetStart,
-    categoriesOffsetEnd,
-  }) {
-  return ReadStartEnd({
-    filePath,
-    start: categoriesOffsetStart,
-    end: categoriesOffsetEnd,
-  })
-}
+  const archiveRanges = readArchiveRanges({ readRange })
 
-export async function ReadDataRowIds ({
-    filePath,
-    dataRowIdsOffsetStart,
-    dataRowIdsOffsetEnd,
-  }) {
-  return ReadStartEnd({
-    filePath,
-    start: dataRowIdsOffsetStart,
-    end: dataRowIdsOffsetEnd,
-  })
-}
-
-export async function ReadDataRowLengths ({
-    filePath,
-    dataRowLengthsOffsetStart,
-    dataRowLengthsOffsetEnd,
-  }) {
-  return ReadStartEnd({
-    filePath,
-    start: dataRowLengthsOffsetStart,
-    end: dataRowLengthsOffsetEnd,
-  })
-}
-
-export const decode = async ({ archiveFilePath }) => {
-  const archiveHeaderBuffer = await ReadArchiveHeader({
+  const archiveHeaderBuffer = await archiveRanges.archiveHeader({
     filePath: archiveFilePath,
   })
   const archiveHeader = headerArchiveDecode({ buffer: archiveHeaderBuffer })
@@ -93,21 +80,21 @@ export const decode = async ({ archiveFilePath }) => {
     ...archiveHeader,
   }
 
-  const headerRowBuffer = await ReadHeaderRow(readOptions)
+  const headerRowBuffer = await archiveRanges.headerRow(readOptions)
   const { headerRow } = headerRowDecode({ buffer: headerRowBuffer })
 
 
-  const categoriesBuffer = await ReadCategories(readOptions)
+  const categoriesBuffer = await archiveRanges.categories(readOptions)
   const { categories } = categoriesDecode({ buffer: categoriesBuffer })
   setCategories(categories)
 
-  const dataRowIdsBuffer = await ReadDataRowIds({
+  const dataRowIdsBuffer = await archiveRanges.dataRowIds({
     filePath: archiveFilePath,
     ...archiveHeader,
   })
   const dataRowIds = decodeDataRowIdsBuffer({ buffer: dataRowIdsBuffer })
 
-  const dataRowLengthsBuffer = await ReadDataRowLengths(readOptions)
+  const dataRowLengthsBuffer = await archiveRanges.dataRowLengths(readOptions)
   const dataRowLengths = decodeRowLengthsBuffer({ buffer: dataRowLengthsBuffer })
 
   const rowDecoder = dataRowDecoder({ headerRow })

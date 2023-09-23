@@ -8,9 +8,12 @@ import {
 } from './redcedar-config.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+export const testDataDirectory = __dirname
 
 export const userIdEncoder = idEncoder
 export { userHeader, userIdForRow }
 
 export const csvFilePath = join(__dirname, 'redcedar-data.csv')
-export const archiveFilePath = join(__dirname, 'redcedar.ta')
+// for testing
+export const archiveFilePathName = 'redcedar.ta'
+export const archiveFilePath = join(__dirname, archiveFilePathName)
