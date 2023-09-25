@@ -123,6 +123,7 @@ test('archive-decode', async (t) => {
       readRange: readRangeFetch,
     })
     await decoderTests({ t, decoder })
+    await server.close()
   }
 
 

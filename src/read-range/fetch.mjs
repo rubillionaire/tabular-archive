@@ -6,6 +6,6 @@ export async function readRange ({ filePath, start, end }) {
   headers.append('Range', `bytes=${start}-${end}`)
   const res = await fetch(filePath, { headers })
   const arrayBuffer = await res.arrayBuffer()
-  const buffer = b4a.from(arrayBuffer, 0, end)
+  const buffer = b4a.from(arrayBuffer, 0, end-start)
   return buffer
 }

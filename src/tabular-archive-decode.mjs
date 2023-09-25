@@ -135,7 +135,7 @@ export const decode = async ({ archiveFilePath, readRange }) => {
   async function getRowBySequence ({ rowNumber }) {
     const start = dataRowLengths.slice(0, rowNumber).reduce(sum, startOfDataRows)
     const end = start + dataRowLengths.slice(rowNumber, rowNumber + 1)[0]
-    const compressedBuffer = await ReadStartEnd({
+    const compressedBuffer = await readRange({
       filePath: archiveFilePath,
       start,
       end,
