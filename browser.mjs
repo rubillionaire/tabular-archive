@@ -1,3 +1,4 @@
 import { readRange } from './src/read-range/fetch.mjs'
-export { decode } from './src/tabular-archive-decode.mjs'
+import { decode } from './src/tabular-archive-decode.mjs'
+export { decode }
 export const decodeFetch = decode({ readRange })
