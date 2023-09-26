@@ -44,7 +44,7 @@ export async function encode ({
   archiveFilePath,
 }) {
 
-  const tmpFileBase = `ta-intermediate-${ Date.now() }`
+  const tmpFileBase = `${ archiveFilePath }-${ Date.now() }`
 
   const archiveParts = [
       {
