@@ -1,3 +1,5 @@
+import { encoderTypes } from '../../index.mjs'
+
 const analyses = [
   'period-all',
   'period-eph',
@@ -12,11 +14,11 @@ const analysesHeaders = analyses.map(name => {
   return [
     {
       field: `${name}-dist`,
-      encoder: 'float',
+      encoder: encoderTypes.float,
     },
     {
       field: `${name}-nfeat-period`,
-      encoder: 'category',
+      encoder: encoderTypes.category,
     },
   ]
 }).reduce((acc, curr) => acc.concat(curr), [])
@@ -24,23 +26,23 @@ const analysesHeaders = analyses.map(name => {
 export const header = [
   {
     field: '',
-    encoder: 'int32',
+    encoder: encoderTypes.int32,
   },
   {
     field: 'id',
-    encoder: 'int32',
+    encoder: encoderTypes.int32,
   },
   {
     field: 'latitude',
-    encoder: 'geo'
+    encoder: encoderTypes.geo,
   },
   {
     field: 'longitude',
-    encoder: 'geo'
+    encoder: encoderTypes.geo,
   },
   {
     field: 'reclassified.tree.canopy.symptoms',
-    encoder: 'category',
+    encoder: encoderTypes.category,
   },
 ].concat(analysesHeaders)
 
@@ -48,4 +50,4 @@ export const idForRow = ({ row }) => {
   return parseInt(row.id)
 }
 
-export const idEncoder = 'int32'
+export const idEncoder = encoderTypes.int32
