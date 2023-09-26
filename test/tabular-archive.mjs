@@ -118,9 +118,11 @@ test('archive-decode', async (t) => {
     }
     const server = awaitableServer()
     await server.listen()
+
     const decoder = await decode({ readRange: readRangeFetch })({
       archiveFilePath: `http://localhost:${server.port}/${archiveFilePathName}`,
     })
+
     await decoderTests({ t, decoder })
 
     let counter = -1
@@ -130,7 +132,13 @@ test('archive-decode', async (t) => {
     for await (const { row } of decoder.getRowsBySequence({ startRowNumber, endRowNumber })) {
       counter += 1
     }
-    t.alike(counter, endRowNumber, 'Got range')
+    t.alike(counter, endRowNumber, 'Got range by sequence')
+
+    counter = -1
+    for await (const { row } of decoder.getRowsByIdWithPage({ id: 151650727, pageCount })) {
+      counter += 1
+    }
+    t.alike(counter, endRowNumber, 'Got range by id')
 
     await server.close()
   }

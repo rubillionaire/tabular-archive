@@ -104,6 +104,7 @@ export const decode = ({ readRange }) => async ({ archiveFilePath }) => {
     getRowBySequence,
     getRowsBySequence,
     getRowById,
+    getRowsByIdWithPage,
   }
 
   function decodeDataRowIdsBuffer ({ buffer, offset=0 }) {
@@ -168,5 +169,24 @@ export const decode = ({ readRange }) => async ({ archiveFilePath }) => {
     const index = dataRowIds.indexOf(id)
     if (index === -1) throw new Error(`No id value ${id} in this archive`)
     return await getRowBySequence({ rowNumber: index })
+  }
+
+  function getRowsByIdWithPage ({ id, pageCount }) {
+    const index = dataRowIds.indexOf(id)
+    if (index === -1) throw new Error(`No id value ${id} in this archive`)
+    const rowOffset = (pageCount-1)/2
+    let startRowNumber = index -  Math.floor(rowOffset)
+    let endRowNumber = index + Math.ceil(rowOffset)
+    if (startRowNumber < 0) {
+      const diff = 0 - startRowNumber
+      startRowNumber = 0
+      endRowNumber += diff
+    }
+    else if (endRowNumber > dataRowIds.length - 1) {
+      const diff = endRowNumber - (dataRowIds.length - 1)
+      startRowNumber -= diff
+      endRowNumber -= diff
+    }
+    return getRowsBySequence({ startRowNumber, endRowNumber })
   }
 }
