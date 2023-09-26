@@ -53,12 +53,14 @@ encoder.geo = encoder.make(6,
   }
 )
 
-export const encoderTypes = Object.keys(encoder)
+const encoderTypeKeys = Object.keys(encoder)
   .filter(type => {
     return typeof encoder[type].encodingLength === 'function' &&
       typeof encoder[type].encode === 'function' &&
       typeof encoder[type].decode === 'function'
   })
+
+export const encoderTypes = encoderTypeKeys
   .map(type => {
     return { [type]: type }
   })
@@ -69,12 +71,7 @@ export const encoderTypes = Object.keys(encoder)
     }
   }, {})
 
-export const maxEncoderTypeLength = Object.keys(encoder)
-  .filter(type => {
-    return typeof encoder[type].encodingLength === 'function' &&
-      typeof encoder[type].encode === 'function' &&
-      typeof encoder[type].decode === 'function'
-  })
+export const maxEncoderTypeLength = encoderTypeKeys
   .map(type => type.length)
   .sort()
   .pop()
