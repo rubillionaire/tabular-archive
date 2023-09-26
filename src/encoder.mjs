@@ -7,6 +7,34 @@ export const setCategories = (c) => {
   categories = c
 }
 
+encoder.date = encoder.make(8,
+  function encode (val, buffer, offset) {
+    const date = new Date(val)
+    let timestamp = date.getTime()
+    if (isNaN(timestamp)) {
+      timestamp = -1
+    }
+    encoder.int64.encode(timestamp, buffer, offset)
+    encode.bytes = encoder.int64.encode.bytes
+    return buffer
+  },
+  function decode (buffer, offset) {
+    const timestamp = encoder.int64.decode(buffer, offset)
+    decode.bytes = encoder.int64.decode.bytes
+    const date = new Date(timestamp)
+    const value = date.toISOString()
+    return value
+  },
+  function encodingLength (val) {
+    const date = new Date(val)
+    let timestamp = date.getTime()
+    if (isNaN(timestamp)) {
+      timestamp = -1
+    }
+    return encoder.int64.encodingLength(timestamp)
+  }
+)
+
 encoder.category = encoder.make(7,
   function encode (val, buffer, offset) {
     let valueIndex = categories.indexOf(val)

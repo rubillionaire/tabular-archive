@@ -33,6 +33,14 @@ export const header = [
     encoder: encoderTypes.int32,
   },
   {
+    field: 'created_at',
+    encoder: encoderTypes.date,
+  },
+  {
+    field: 'updated_at',
+    encoder: encoderTypes.date,
+  },
+  {
     field: 'latitude',
     encoder: encoderTypes.geo,
   },
