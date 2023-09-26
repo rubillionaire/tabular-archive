@@ -5,9 +5,6 @@ import {
   decode as headerArchiveDecode,
 } from './archive-header.mjs'
 import {
-  ReadStartEnd,
-} from './stream-helpers.mjs'
-import {
   decode as headerRowDecode,
 } from './header-row.mjs'
 import {
@@ -62,7 +59,7 @@ export const readArchiveRanges = ({ readRange }) => {
   }
 }
 
-export const decode = async ({ archiveFilePath, readRange }) => {
+export const decode = ({ readRange }) => async ({ archiveFilePath }) => {
 
   const archiveRanges = readArchiveRanges({ readRange })
 
@@ -105,6 +102,7 @@ export const decode = async ({ archiveFilePath, readRange }) => {
     rowCount,
     categories,
     getRowBySequence,
+    getRowsBySequence,
     getRowById,
   }
 
@@ -134,7 +132,7 @@ export const decode = async ({ archiveFilePath, readRange }) => {
 
   async function getRowBySequence ({ rowNumber }) {
     const start = dataRowLengths.slice(0, rowNumber).reduce(sum, startOfDataRows)
-    const end = start + dataRowLengths.slice(rowNumber, rowNumber + 1)[0]
+    const end = dataRowLengths.slice(rowNumber, rowNumber + 1).reduce(sum, start)
     const compressedBuffer = await readRange({
       filePath: archiveFilePath,
       start,
@@ -143,6 +141,27 @@ export const decode = async ({ archiveFilePath, readRange }) => {
     const buffer = gunzipSync(compressedBuffer)
     const { row } = rowDecoder({ buffer })
     return { row }
+  }
+
+  async function* getRowsBySequence ({ startRowNumber, endRowNumber }) {
+    const start = dataRowLengths.slice(0, startRowNumber).reduce(sum, startOfDataRows)
+    const rowLengths = dataRowLengths.slice(startRowNumber, endRowNumber + 1)
+    const end = rowLengths.reduce(sum, start)
+    const compressedBuffer = await readRange({
+      filePath: archiveFilePath,
+      start,
+      end,
+    })
+    let offsetStart = 0
+    for (let i = 0; i < rowLengths.length; i++) {
+      const offsetEnd = offsetStart + rowLengths[i]
+      const compressedBufferSlice = b4a.alloc(rowLengths[i])
+      compressedBuffer.copy(compressedBufferSlice, 0, offsetStart, offsetEnd)
+      const buffer = gunzipSync(compressedBufferSlice)
+      const { row } = rowDecoder({ buffer })
+      yield { row }
+      offsetStart = offsetEnd
+    }
   }
 
   async function getRowById ({ id }) {

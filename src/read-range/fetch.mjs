@@ -1,7 +1,6 @@
 import b4a from 'b4a'
 
 export async function readRange ({ filePath, start, end }) {
-  console.log({ filePath, start, end})
   const headers = new Headers()
   headers.append('Range', `bytes=${start}-${end}`)
   const res = await fetch(filePath, { headers })

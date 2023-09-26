@@ -91,7 +91,7 @@ test('archive-decode', async (t) => {
   } from 'tabular-archive/browser'
    */
   {
-    const decoder = await decode({ archiveFilePath, readRange: readRangeFs })
+    const decoder = await decode({ readRange: readRangeFs })({ archiveFilePath })
     await decoderTests({ t, decoder })
   }
   {
@@ -118,11 +118,20 @@ test('archive-decode', async (t) => {
     }
     const server = awaitableServer()
     await server.listen()
-    const decoder = await decode({
+    const decoder = await decode({ readRange: readRangeFetch })({
       archiveFilePath: `http://localhost:${server.port}/${archiveFilePathName}`,
-      readRange: readRangeFetch,
     })
     await decoderTests({ t, decoder })
+
+    let counter = -1
+    const pageCount = 10
+    const startRowNumber = 0
+    const endRowNumber = pageCount - 1
+    for await (const { row } of decoder.getRowsBySequence({ startRowNumber, endRowNumber })) {
+      counter += 1
+    }
+    t.alike(counter, endRowNumber, 'Got range')
+
     await server.close()
   }
 
