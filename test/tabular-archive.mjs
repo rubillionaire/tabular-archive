@@ -72,64 +72,63 @@ const decoderTests = async ({ t, decoder }) => {
 
 }
 
+test('archive-decode:fs', async (t) => {
+  const decoder = await decode({ readRange: readRangeFs })({ archiveFilePath })
+  await decoderTests({ t, decoder })
+  t.pass('Successfully decode the tabular-archive using node-fs interface')
+})
 
-test('archive-decode', async (t) => {
-  // this is wherer we can test out the user facing api
-  {
-    const decoder = await decode({ readRange: readRangeFs })({ archiveFilePath })
-    await decoderTests({ t, decoder })
-  }
-  {
-    const awaitableServer = () => {
-      const port = 8080
-      const server = http.createServer((request, response) => {
-        return handler(request, response, {
-          public: testDataDirectory,
-        })
+test('archive-decode:fetch', async (t) => {
+  const awaitableServer = () => {
+    const port = 8080
+    const server = http.createServer((request, response) => {
+      return handler(request, response, {
+        public: testDataDirectory,
       })
-      return {
-        port,
-        listen: () => {
-          return new Promise((resolve, reject) => {
-            server.listen(port, resolve)
-          })
-        },
-        close: () => {
-          return new Promise((resolve, reject) => {
-            server.close(resolve)
-          })
-        },
-      }
-    }
-    const server = awaitableServer()
-    await server.listen()
-
-    const decoder = await decode({ readRange: readRangeFetch })({
-      archiveFilePath: `http://localhost:${server.port}/${archiveFilePathName}`,
     })
-
-    await decoderTests({ t, decoder })
-
-    let counter = -1
-    const pageCount = 10
-    const startRowNumber = 0
-    const endRowNumber = pageCount - 1
-    for await (const { row } of decoder.getRowsBySequence({ startRowNumber, endRowNumber })) {
-      counter += 1
+    return {
+      port,
+      listen: () => {
+        return new Promise((resolve, reject) => {
+          server.listen(port, resolve)
+        })
+      },
+      close: () => {
+        return new Promise((resolve, reject) => {
+          server.close(resolve)
+        })
+      },
     }
-    t.alike(counter, endRowNumber, 'Got range by sequence')
-
-    counter = -1
-    for await (const { row } of decoder.getRowsByIdWithPage({ id: 151650727, pageCount })) {
-      counter += 1
-    }
-    t.alike(counter, endRowNumber, 'Got range by id')
-
-    await server.close()
   }
+  const server = awaitableServer()
+  await server.listen()
 
+  const decoder = await decode({ readRange: readRangeFetch })({
+    archiveFilePath: `http://localhost:${server.port}/${archiveFilePathName}`,
+  })
 
+  await decoderTests({ t, decoder })
+
+  let counter = -1
+  const pageCount = 10
+  const startRowNumber = 0
+  const endRowNumber = pageCount - 1
+  for await (const { row } of decoder.getRowsBySequence({ startRowNumber, endRowNumber })) {
+    counter += 1
+  }
+  t.alike(counter, endRowNumber, 'Got range by sequence')
+
+  counter = -1
+  for await (const { row } of decoder.getRowsByIdWithPage({ id: 151650727, pageCount })) {
+    counter += 1
+  }
+  t.alike(counter, endRowNumber, 'Got range by id')
+
+  await server.close()
+
+  t.pass('Successfully decode the tabular-archive using fetch interface')
+})
+
+test('delete-archive', async (t) => {
   await fsp.unlink(archiveFilePath)
-
-  t.pass('Successfully decode the tabular-archive header')
 })
