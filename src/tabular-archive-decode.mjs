@@ -147,12 +147,10 @@ export const decode = ({ readRange }) => async ({ archiveFilePath }) => {
 
   const headerRowBuffer = await archiveRanges.headerRow(readOptions)
   const { headerRow } = headerRowDecode({ buffer: headerRowBuffer })
-  // console.log({headerRow})
 
   const categoriesBuffer = await archiveRanges.categories(readOptions)
   const { categories } = categoriesDecode({ buffer: categoriesBuffer })
   setCategories(categories)
-  console.log({categories})
 
   const dataRowIdsBuffer = await archiveRanges.dataRowIds(readOptions)
   const dataRowIdsDecoded = decodeDataRowIdsBuffer({ buffer: dataRowIdsBuffer })
@@ -164,8 +162,6 @@ export const decode = ({ readRange }) => async ({ archiveFilePath }) => {
   const rowDecoder = dataRowDecoder({ headerRow })
 
   const rowCount = dataRowLengths.length
-
-  console.log({ rowCount })
 
   return {
     rowCount,
