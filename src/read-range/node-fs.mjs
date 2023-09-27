@@ -3,28 +3,30 @@ import fs from 'node:fs'
 import { Writable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
-export async function readRange ({ filePath, start, end }) {
+export async function readRange ({ filePath, start, end, ranges }) {
   let completeBuffer
+  if (!ranges) {
+    ranges = [{ start, end }]
+  }
+  const captureBuffer = () => new Writable({
+    write: (buffer, enc, next) => {
+      if (completeBuffer)  {
+        const len = completeBuffer.length + buffer.length
+        completeBuffer = b4a.concat([completeBuffer, buffer], len)
+      }
+      else {
+        completeBuffer = buffer
+      }
+      next()
+    },
+  })
   return new Promise(async (resolve, reject) => {
-    const captureBuffer = new Writable({
-      write: (buffer, enc, next) => {
-        if (completeBuffer)  {
-          const len = completeBuffer.length + buffer.length
-          completeBuffer = b4a.concat([completeBuffer, buffer], len)
-        }
-        else {
-          completeBuffer = buffer
-        }
-        next()
-      },
-    })
-    
-    await pipeline(
-      fs.createReadStream(filePath, {
-        start,
-        end,
-      }),
-      captureBuffer)
+    for (const range of ranges) {
+      
+      await pipeline(
+        fs.createReadStream(filePath, { ...range }),
+        captureBuffer())
+    }
 
     resolve(completeBuffer)
   })

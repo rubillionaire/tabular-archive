@@ -38,8 +38,7 @@ export const encode = ({ headerRow }) => {
   }
 }
 
-export const decode = ({ buffer }) => {
-  let offset = 0
+export const decode = ({ buffer, offset=0 }) => {
   const headerRow = []
   while (offset <  buffer.length - 1) {
     const field = enc.string.decode(buffer, offset)
@@ -51,5 +50,5 @@ export const decode = ({ buffer }) => {
       encoder,
     })
   }
-  return { headerRow }
+  return { headerRow, offset }
 }

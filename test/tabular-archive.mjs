@@ -75,21 +75,6 @@ const decoderTests = async ({ t, decoder }) => {
 
 test('archive-decode', async (t) => {
   // this is wherer we can test out the user facing api
-  /*
-  import {
-    getRowBySequence({ rowNumber }),
-    getRowById({ id }),
-    getRangeBySequence({ startRowNumber, endRowNumber }),
-    getRangeById({ id, surrounding }),
-  } from 'tabular-archive/node'
-
-  import {
-    getRowBySequence({ rowNumber }),
-    getRowById({ id }),
-    getRangeBySequence({ startRowNumber, endRowNumber }),
-    getRangeById({ id, surrounding }),
-  } from 'tabular-archive/browser'
-   */
   {
     const decoder = await decode({ readRange: readRangeFs })({ archiveFilePath })
     await decoderTests({ t, decoder })

@@ -15,13 +15,12 @@ export const encode = ({ categories }) => {
   return { buffer, bufferLength }
 }
 
-export const decode = ({ buffer }) => {
-  let offset = 0
+export const decode = ({ buffer, offset=0 }) => {
   const categories = []
   while (offset < buffer.length - 1) {
     const category = enc.string.decode(buffer, offset)
     offset += enc.string.decode.bytes
     categories.push(category)
   }
-  return { categories }
+  return { categories, offset }
 }

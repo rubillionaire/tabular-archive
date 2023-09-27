@@ -56,6 +56,65 @@ export const readArchiveRanges = ({ readRange }) => {
         end: dataRowLengthsOffsetEnd,
       })
     },
+    archiveHeaderPartsBuffer: async ({
+        filePath,
+        headerRowOffsetStart,
+        headerRowOffsetEnd,
+        categoriesOffsetStart,
+        categoriesOffsetEnd,
+        dataRowIdsOffsetStart,
+        dataRowIdsOffsetEnd,
+        dataRowLengthsOffsetStart,
+        dataRowLengthsOffsetEnd,
+      }) => {
+      const ranges = [
+        {
+          name: 'headerRow',
+          start: headerRowOffsetStart,
+          end: headerRowOffsetEnd,
+        },
+        {
+          name: 'categories',
+          start: categoriesOffsetStart,
+          end: categoriesOffsetEnd,
+        },
+        {
+          name: 'dataRowIds',
+          start: dataRowIdsOffsetStart,
+          end: dataRowIdsOffsetEnd,
+        },
+        {
+          name: 'dataRowLengths',
+          start: dataRowLengthsOffsetStart,
+          end: dataRowLengthsOffsetEnd,
+        },
+      ]
+
+      const buffer = await readRange({
+        filePath,
+        ranges,
+      })
+
+      // how is it that our buffer lenght is 11804, but our offset
+      // of accumulated lengths through the buffer is only 11800
+      console.log({bufferLength: buffer.length})
+
+      let offset = 0
+      const bufferParts = {}
+      for (const range of ranges) {
+        console.log({range})
+        const length = range.end - range.start
+        console.log({length})
+        const partBuffer = b4a.alloc(length)
+        buffer.copy(partBuffer, 0, offset, offset + length)
+        offset += length
+        console.log({offset})
+        bufferParts[`${range.name}Buffer`] = partBuffer
+      }
+      console.log({offset})
+
+      return bufferParts
+    },
   }
 }
 
@@ -67,6 +126,8 @@ export const decode = ({ readRange }) => async ({ archiveFilePath }) => {
     filePath: archiveFilePath,
   })
   const archiveHeader = headerArchiveDecode({ buffer: archiveHeaderBuffer })
+  // console.log({archiveHeader})
+
   const { dataRowIdsEncoderString } = archiveHeader
   // this is where the data starts
   const startOfDataRows = archiveHeader.dataRowLengthsOffsetEnd
@@ -77,26 +138,34 @@ export const decode = ({ readRange }) => async ({ archiveFilePath }) => {
     ...archiveHeader,
   }
 
+  // const {
+  //   headerRowBuffer,
+  //   categoriesBuffer,
+  //   dataRowIdsBuffer,
+  //   dataRowLengthsBuffer,
+  // } = await archiveRanges.archiveHeaderPartsBuffer(readOptions)
+
   const headerRowBuffer = await archiveRanges.headerRow(readOptions)
   const { headerRow } = headerRowDecode({ buffer: headerRowBuffer })
-
+  // console.log({headerRow})
 
   const categoriesBuffer = await archiveRanges.categories(readOptions)
   const { categories } = categoriesDecode({ buffer: categoriesBuffer })
   setCategories(categories)
+  console.log({categories})
 
-  const dataRowIdsBuffer = await archiveRanges.dataRowIds({
-    filePath: archiveFilePath,
-    ...archiveHeader,
-  })
-  const dataRowIds = decodeDataRowIdsBuffer({ buffer: dataRowIdsBuffer })
+  const dataRowIdsBuffer = await archiveRanges.dataRowIds(readOptions)
+  const dataRowIdsDecoded = decodeDataRowIdsBuffer({ buffer: dataRowIdsBuffer })
+  const { dataRowIds } = dataRowIdsDecoded
 
   const dataRowLengthsBuffer = await archiveRanges.dataRowLengths(readOptions)
-  const dataRowLengths = decodeRowLengthsBuffer({ buffer: dataRowLengthsBuffer })
+  const { dataRowLengths } = decodeRowLengthsBuffer({ buffer: dataRowLengthsBuffer })
 
   const rowDecoder = dataRowDecoder({ headerRow })
 
   const rowCount = dataRowLengths.length
+
+  console.log({ rowCount })
 
   return {
     rowCount,
@@ -108,23 +177,23 @@ export const decode = ({ readRange }) => async ({ archiveFilePath }) => {
   }
 
   function decodeDataRowIdsBuffer ({ buffer, offset=0 }) {
-    const ids = []
+    const dataRowIds = []
     while (offset < buffer.length - 1) {
       const id = userIdEncoder.decode(buffer, offset)
       offset += userIdEncoder.decode.bytes
-      ids.push(id)
+      dataRowIds.push(id)
     }
-    return ids
+    return { dataRowIds, offset }
   }
 
   function decodeRowLengthsBuffer ({ buffer, offset=0 }) {
-    const lengths = []
+    const dataRowLengths = []
     while (offset < buffer.length - 1) {
       const len = enc.int64.decode(buffer, offset)
       offset += enc.int64.decode.bytes
-      lengths.push(len)
+      dataRowLengths.push(len)
     }
-    return lengths
+    return { dataRowLengths, offset }
   }
 
   function sum (accumulator, current) {

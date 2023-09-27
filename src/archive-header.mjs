@@ -61,12 +61,10 @@ export function create () {
 }
 
 export const decode = ({ buffer, offset=0 }) => {
-  console.log({ buffer })
   const hName = enc.string.decode(buffer, offset)
   offset += enc.string.decode.bytes
   const hVersion = enc.int32.decode(buffer, offset)
   offset += enc.int32.decode.bytes
-  console.log({ hName, hVersion })
   if (name !== hName || version !== hVersion) throw Error(`Archive does not conform to v${version}`)
   
   const headerRowOffsetStart = enc.int32.decode(buffer, offset)
