@@ -92,28 +92,20 @@ export const readArchiveRanges = ({ readRange }) => {
 
       const buffer = await readRange({
         filePath,
-        ranges,
+        ranges: [{ start: headerRowOffsetStart, end: dataRowLengthsOffsetEnd }],
       })
 
-      // how is it that our buffer lenght is 11804, but our offset
-      // of accumulated lengths through the buffer is only 11800
-      console.log({bufferLength: buffer.length})
-
       let offset = 0
-      const bufferParts = {}
+      const parts = {}
       for (const range of ranges) {
-        console.log({range})
         const length = range.end - range.start
-        console.log({length})
         const partBuffer = b4a.alloc(length)
         buffer.copy(partBuffer, 0, offset, offset + length)
         offset += length
-        console.log({offset})
-        bufferParts[`${range.name}Buffer`] = partBuffer
+        parts[`${range.name}Buffer`] = partBuffer
       }
-      console.log({offset})
 
-      return bufferParts
+      return parts
     },
   }
 }
@@ -138,25 +130,21 @@ export const decode = ({ readRange }) => async ({ archiveFilePath }) => {
     ...archiveHeader,
   }
 
-  // const {
-  //   headerRowBuffer,
-  //   categoriesBuffer,
-  //   dataRowIdsBuffer,
-  //   dataRowLengthsBuffer,
-  // } = await archiveRanges.archiveHeaderPartsBuffer(readOptions)
+  const {
+    headerRowBuffer,
+    categoriesBuffer,
+    dataRowIdsBuffer,
+    dataRowLengthsBuffer,
+  } = await archiveRanges.archiveHeaderPartsBuffer(readOptions)
 
-  const headerRowBuffer = await archiveRanges.headerRow(readOptions)
   const { headerRow } = headerRowDecode({ buffer: headerRowBuffer })
 
-  const categoriesBuffer = await archiveRanges.categories(readOptions)
   const { categories } = categoriesDecode({ buffer: categoriesBuffer })
   setCategories(categories)
 
-  const dataRowIdsBuffer = await archiveRanges.dataRowIds(readOptions)
   const dataRowIdsDecoded = decodeDataRowIdsBuffer({ buffer: dataRowIdsBuffer })
   const { dataRowIds } = dataRowIdsDecoded
 
-  const dataRowLengthsBuffer = await archiveRanges.dataRowLengths(readOptions)
   const { dataRowLengths } = decodeRowLengthsBuffer({ buffer: dataRowLengthsBuffer })
 
   const rowDecoder = dataRowDecoder({ headerRow })
