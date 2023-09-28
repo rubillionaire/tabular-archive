@@ -21,7 +21,7 @@
     "build": "npm run build:iife && npm run build:esm && npm run build:cjs && npm run build:browser:esm && npm run build:browser:cjs",
     "prepublishOnly": "npm run test && npm run build"
   },
-  "author": "",
+  "author": "Rubén Rodríguez <mail@rubenrodriguez.me>",
   "license": "ISC",
   "dependencies": {
     "b4a": "^1.6.4",
