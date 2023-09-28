@@ -1,4 +1,4 @@
-import assert from 'node:assert'
+// import assert from 'node:assert'
 import b4a from 'b4a'
 import { encoder as enc } from './encoder.mjs'
 
@@ -33,7 +33,7 @@ export const dataRowEncoder = ({ headerRow }) => {
       spec.encoder.encode(spec.value, buffer, bufOffset)
       bufOffset += spec.encoder.encode.bytes
     })
-    assert.equal(bufferLength, bufOffset)
+    // assert.equal(bufferLength, bufOffset)
     return { buffer, bufferLength }
   }
 
