@@ -194,7 +194,7 @@ export const decode = ({ readRange }) => async ({ archiveFilePath }) => {
     })
     const buffer = gunzipSync(compressedBuffer)
     const { row } = rowDecoder({ buffer })
-    return { row }
+    return { row, rowNumber }
   }
 
   async function* getRowsBySequence ({ startRowNumber, endRowNumber }) {
