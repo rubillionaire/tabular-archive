@@ -2,10 +2,23 @@
   "name": "tabular-archive",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "source": "index.mjs",
+  "browser": {
+    "./dist/index.mjs": "./dist/browser.mjs",
+    "./dist/index.cjs": "./dist/browser.cjs"
+  },
+  "bin": "./bin/cli.js",
   "type": "module",
   "scripts": {
-    "test": "brittle test/*.mjs"
+    "test": "brittle test/*.mjs",
+    "build:iife": "esbuild index.mjs --outfile=dist/index.js --target=es6 --global-name=TabularArchive --bundle --format=iife --platform=node",
+    "build:esm": "esbuild index.mjs --outfile=dist/index.mjs --target=es6 --global-name=TabularArchive --bundle --format=esm --platform=node",
+    "build:cjs": "esbuild index.mjs --outfile=dist/index.cjs --target=es6 --global-name=TabularArchive --bundle --format=cjs --platform=node",
+    "build:browser:esm": "esbuild browser.mjs --outfile=dist/browser.mjs --target=es6 --global-name=TabularArchive --bundle --format=esm",
+    "build:browser:cjs": "esbuild browser.mjs --outfile=dist/browser.cjs --target=es6 --global-name=TabularArchive --bundle --format=cjs",
+    "build": "npm run build:iife && npm run build:esm && npm run build:cjs && npm run build:browser:esm && npm run build:browser:cjs"
   },
   "author": "",
   "license": "ISC",
@@ -19,7 +32,9 @@
   },
   "devDependencies": {
     "brittle": "^3.3.2",
+    "esbuild": "^0.19.3",
     "http-server": "^14.1.1",
+    "minimist": "^1.2.8",
     "serve": "^14.2.1",
     "serve-handler": "^6.1.5"
   }
