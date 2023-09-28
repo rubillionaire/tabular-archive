@@ -99,8 +99,7 @@ export const readArchiveRanges = ({ readRange }) => {
       const parts = {}
       for (const range of ranges) {
         const length = range.end - range.start
-        const partBuffer = b4a.alloc(length)
-        buffer.copy(partBuffer, 0, offset, offset + length)
+        const partBuffer = buffer.subarray(offset, offset + length)
         offset += length
         parts[`${range.name}Buffer`] = partBuffer
       }
@@ -152,6 +151,7 @@ export const decode = ({ readRange }) => async ({ archiveFilePath }) => {
   const rowCount = dataRowLengths.length
 
   return {
+    headerRow,
     rowCount,
     categories,
     getRowBySequence,
