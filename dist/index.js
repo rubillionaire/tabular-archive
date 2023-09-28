@@ -1837,17 +1837,19 @@ var TabularArchive = (() => {
       import_protocol_buffers_encodings.default.string.encode(s.encoder, buffer, bufferLength);
       bufferLength += import_protocol_buffers_encodings.default.string.encode.bytes;
     });
+    const compressedBuffer = gzipSync(buffer);
     return {
-      buffer,
-      bufferLength
+      buffer: compressedBuffer,
+      bufferLength: compressedBuffer.length
     };
   };
   var decode4 = ({ buffer, offset = 0 }) => {
+    const uncompressedBuffer = gunzipSync(buffer);
     const headerRow = [];
-    while (offset < buffer.length - 1) {
-      const field = import_protocol_buffers_encodings.default.string.decode(buffer, offset);
+    while (offset < uncompressedBuffer.length - 1) {
+      const field = import_protocol_buffers_encodings.default.string.decode(uncompressedBuffer, offset);
       offset += import_protocol_buffers_encodings.default.string.decode.bytes;
-      const encoder2 = import_protocol_buffers_encodings.default.string.decode(buffer, offset);
+      const encoder2 = import_protocol_buffers_encodings.default.string.decode(uncompressedBuffer, offset);
       offset += import_protocol_buffers_encodings.default.string.decode.bytes;
       headerRow.push({
         field,
@@ -1869,12 +1871,17 @@ var TabularArchive = (() => {
       import_protocol_buffers_encodings.default.string.encode(s, buffer, bufferLength);
       bufferLength += import_protocol_buffers_encodings.default.string.encode.bytes;
     });
-    return { buffer, bufferLength };
+    const compressedBuffer = gzipSync(buffer);
+    return {
+      buffer: compressedBuffer,
+      bufferLength: compressedBuffer.length
+    };
   };
   var decode5 = ({ buffer, offset = 0 }) => {
+    const uncompressedBuffer = gunzipSync(buffer);
     const categories2 = [];
-    while (offset < buffer.length - 1) {
-      const category = import_protocol_buffers_encodings.default.string.decode(buffer, offset);
+    while (offset < uncompressedBuffer.length - 1) {
+      const category = import_protocol_buffers_encodings.default.string.decode(uncompressedBuffer, offset);
       offset += import_protocol_buffers_encodings.default.string.decode.bytes;
       categories2.push(category);
     }
@@ -2307,7 +2314,7 @@ var TabularArchive = (() => {
           const compressedBufferSlice = compressedBuffer.slice(offsetStart, offsetEnd);
           const buffer = gunzipSync(compressedBufferSlice);
           const { row } = rowDecoder({ buffer });
-          yield { row, index: startRowNumber + i };
+          yield { row, rowNumber: startRowNumber + i };
           offsetStart = offsetEnd;
         }
       });
