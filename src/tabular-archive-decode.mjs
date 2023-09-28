@@ -209,8 +209,7 @@ export const decode = ({ readRange }) => async ({ archiveFilePath }) => {
     let offsetStart = 0
     for (let i = 0; i < rowLengths.length; i++) {
       const offsetEnd = offsetStart + rowLengths[i]
-      const compressedBufferSlice = b4a.alloc(rowLengths[i])
-      compressedBuffer.copy(compressedBufferSlice, 0, offsetStart, offsetEnd)
+      const compressedBufferSlice = compressedBuffer.slice(offsetStart, offsetEnd)
       const buffer = gunzipSync(compressedBufferSlice)
       const { row } = rowDecoder({ buffer })
       yield { row }
