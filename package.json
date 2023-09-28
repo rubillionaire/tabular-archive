@@ -26,8 +26,6 @@
     "b4a": "^1.6.4",
     "csv-parser": "^3.0.0",
     "fflate": "^0.8.1",
-    "length-prefixed-stream": "^2.0.0",
-    "mississippi": "^4.0.0",
     "protocol-buffers-encodings": "^1.2.0"
   },
   "devDependencies": {
