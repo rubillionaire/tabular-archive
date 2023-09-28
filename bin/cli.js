@@ -66,7 +66,7 @@ The first argument is the input CSV file to turn into a tabular-archive.
   for example a module that exports the following:
 
   export const header = [{ field, encoder }]
-  export const idForRow = ({ row }) => id
+  export const idForRow = ({ row }) => row.id
   export const idEncoder = 'int32'
 
   see \`test/users-supplied/redcedar-config.mjs\` of this package for for an example.
