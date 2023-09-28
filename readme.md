@@ -2,7 +2,7 @@
 
 A node.js module and CLI that encodes a CSV into a compressed archive, and a browser module for reading slices of the archive.
 
-The motivation for this project was to support creating a table of data without reading the entire CSV into memory. An expression of gratitude for the network and not using more than needed. A sentiment encountered while doing volunteer spatial analysis work for the [Open Redcedar Dieback Analyses](https://jmhulbert.github.io/open/redcedar/). This code powers the data fetching of the interactive data explorer of the [Distance to Waterways Analysis](https://jmhulbert.github.io/open/redcedar/analyses/distance-to-waterways/) that I produced. The source code of which lives [here](https://github.com/rubillionaire/open/tree/main/redcedar/analyses/distance-to-waterways/web-explorer).
+The motivation for this project was to support creating an HTML table of data without reading the entire CSV into memory. An expression of gratitude for the network and not using more than needed. A sentiment encountered while doing volunteer spatial analysis work for the [Open Redcedar Dieback Analyses](https://jmhulbert.github.io/open/redcedar/). This code powers the data fetching of the interactive data explorer of the [Distance to Waterways Analysis](https://jmhulbert.github.io/open/redcedar/analyses/distance-to-waterways/) that I produced. The source code of which lives [here](https://github.com/rubillionaire/open/tree/main/redcedar/analyses/distance-to-waterways/web-explorer).
 
 ### Install
 
