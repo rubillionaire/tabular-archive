@@ -13,6 +13,7 @@ const argv = argParse(process.argv.slice(2), {
   alias: {
     c: 'config',
     o: 'output',
+    h: 'help'
   },
 })
 
@@ -35,7 +36,7 @@ if (argv.config) {
 
 const input = argv._[0]
 const output = argv.output
-if (!input || !output) {
+if (!input || !output || argv.help) {
   console.log(help())
   process.exit(0)
 }
@@ -61,7 +62,7 @@ tabular-archive data.csv -c config.mjs -o encoded.ta
 
 The first argument is the input CSV file to turn into a tabular-archive.
 
--c is the node module that defines fields that configure the tabular-archive.
+-c, --config is the node module that defines fields that configure the tabular-archive.
 
   for example a module that exports the following:
 
@@ -73,6 +74,8 @@ The first argument is the input CSV file to turn into a tabular-archive.
 
   This is a complete list of encoder types: ${ Object.keys(encoderTypes).map(type => encoderTypes[type]).join(', ') }
 
--o is the output file that will tabular-archive will be written to. 
+-o, --output is the output file that will tabular-archive will be written to. 
+
+-h, --help to see this message.
   `
 }
