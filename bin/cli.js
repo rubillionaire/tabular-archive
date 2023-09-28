@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import argParse from 'minimist'
 import { join } from 'path'
-import { encode } from '../index.mjs'
+import { encode, encoderTypes } from '../index.mjs'
 
 const cwd = process.cwd()
 
@@ -70,6 +70,8 @@ The first argument is the input CSV file to turn into a tabular-archive.
   export const idEncoder = 'int32'
 
   see \`test/users-supplied/redcedar-config.mjs\` of this package for for an example.
+
+  This is a complete list of encoder types: ${ Object.keys(encoderTypes).map(type => encoderTypes[type]).join(', ') }
 
 -o is the output file that will tabular-archive will be written to. 
   `
