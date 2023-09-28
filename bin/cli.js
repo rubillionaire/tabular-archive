@@ -77,5 +77,5 @@ The first argument is the input CSV file to turn into a tabular-archive.
 -o, --output is the output file that will tabular-archive will be written to. 
 
 -h, --help to see this message.
-  `
+`
 }
