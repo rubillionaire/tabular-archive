@@ -18,7 +18,8 @@
     "build:cjs": "esbuild index.mjs --outfile=dist/index.cjs --target=es6 --global-name=TabularArchive --bundle --format=cjs --platform=node",
     "build:browser:esm": "esbuild browser.mjs --outfile=dist/browser.mjs --target=es6 --global-name=TabularArchive --bundle --format=esm",
     "build:browser:cjs": "esbuild browser.mjs --outfile=dist/browser.cjs --target=es6 --global-name=TabularArchive --bundle --format=cjs",
-    "build": "npm run build:iife && npm run build:esm && npm run build:cjs && npm run build:browser:esm && npm run build:browser:cjs"
+    "build": "npm run build:iife && npm run build:esm && npm run build:cjs && npm run build:browser:esm && npm run build:browser:cjs",
+    "prepublishOnly": "npm run test && npm run build"
   },
   "author": "",
   "license": "ISC",
