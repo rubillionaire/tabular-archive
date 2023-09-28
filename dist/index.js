@@ -1938,34 +1938,34 @@ var TabularArchive = (() => {
     offset += import_protocol_buffers_encodings.default.int32.decode.bytes;
     if (name !== hName || version !== hVersion)
       throw Error(`Archive does not conform to v${version}`);
-    const headerRowOffsetStart = import_protocol_buffers_encodings.default.int32.decode(buffer, offset);
+    const headerRowStart = import_protocol_buffers_encodings.default.int32.decode(buffer, offset);
     offset += import_protocol_buffers_encodings.default.int32.decode.bytes;
-    const headerRowOffsetEnd = import_protocol_buffers_encodings.default.int32.decode(buffer, offset);
+    const headerRowEnd = import_protocol_buffers_encodings.default.int32.decode(buffer, offset);
     offset += import_protocol_buffers_encodings.default.int32.decode.bytes;
-    const categoriesOffsetStart = import_protocol_buffers_encodings.default.int32.decode(buffer, offset);
+    const categoriesStart = import_protocol_buffers_encodings.default.int32.decode(buffer, offset);
     offset += import_protocol_buffers_encodings.default.int32.decode.bytes;
-    const categoriesOffsetEnd = import_protocol_buffers_encodings.default.int32.decode(buffer, offset);
+    const categoriesEnd = import_protocol_buffers_encodings.default.int32.decode(buffer, offset);
     offset += import_protocol_buffers_encodings.default.int32.decode.bytes;
     const dataRowIdsEncoderString = import_protocol_buffers_encodings.default.string.decode(buffer, offset).trim();
     offset += import_protocol_buffers_encodings.default.string.decode.bytes;
-    const dataRowIdsOffsetStart = import_protocol_buffers_encodings.default.int32.decode(buffer, offset);
+    const dataRowIdsStart = import_protocol_buffers_encodings.default.int32.decode(buffer, offset);
     offset += import_protocol_buffers_encodings.default.int32.decode.bytes;
-    const dataRowIdsOffsetEnd = import_protocol_buffers_encodings.default.int32.decode(buffer, offset);
+    const dataRowIdsEnd = import_protocol_buffers_encodings.default.int32.decode(buffer, offset);
     offset += import_protocol_buffers_encodings.default.int32.decode.bytes;
-    const dataRowLengthsOffsetStart = import_protocol_buffers_encodings.default.int64.decode(buffer, offset);
+    const dataRowLengthsStart = import_protocol_buffers_encodings.default.int64.decode(buffer, offset);
     offset += import_protocol_buffers_encodings.default.int64.decode.bytes;
-    const dataRowLengthsOffsetEnd = import_protocol_buffers_encodings.default.int64.decode(buffer, offset);
+    const dataRowLengthsEnd = import_protocol_buffers_encodings.default.int64.decode(buffer, offset);
     offset += import_protocol_buffers_encodings.default.int64.decode.bytes;
     return {
-      headerRowOffsetStart,
-      headerRowOffsetEnd,
-      categoriesOffsetStart,
-      categoriesOffsetEnd,
+      headerRowStart,
+      headerRowEnd,
+      categoriesStart,
+      categoriesEnd,
       dataRowIdsEncoderString,
-      dataRowIdsOffsetStart,
-      dataRowIdsOffsetEnd,
-      dataRowLengthsOffsetStart,
-      dataRowLengthsOffsetEnd
+      dataRowIdsStart,
+      dataRowIdsEnd,
+      dataRowLengthsStart,
+      dataRowLengthsEnd
     };
   };
 
@@ -2151,70 +2151,70 @@ var TabularArchive = (() => {
           end
         });
       }),
-      headerRow: (_0) => __async(void 0, [_0], function* ({ filePath, headerRowOffsetStart, headerRowOffsetEnd }) {
+      headerRow: (_0) => __async(void 0, [_0], function* ({ filePath, headerRowStart, headerRowEnd }) {
         return readRange2({
           filePath,
-          start: headerRowOffsetStart,
-          end: headerRowOffsetEnd
+          start: headerRowStart,
+          end: headerRowEnd
         });
       }),
-      categories: (_0) => __async(void 0, [_0], function* ({ filePath, categoriesOffsetStart, categoriesOffsetEnd }) {
+      categories: (_0) => __async(void 0, [_0], function* ({ filePath, categoriesStart, categoriesEnd }) {
         return readRange2({
           filePath,
-          start: categoriesOffsetStart,
-          end: categoriesOffsetEnd
+          start: categoriesStart,
+          end: categoriesEnd
         });
       }),
-      dataRowIds: (_0) => __async(void 0, [_0], function* ({ filePath, dataRowIdsOffsetStart, dataRowIdsOffsetEnd }) {
+      dataRowIds: (_0) => __async(void 0, [_0], function* ({ filePath, dataRowIdsStart, dataRowIdsEnd }) {
         return readRange2({
           filePath,
-          start: dataRowIdsOffsetStart,
-          end: dataRowIdsOffsetEnd
+          start: dataRowIdsStart,
+          end: dataRowIdsEnd
         });
       }),
-      dataRowLengths: (_0) => __async(void 0, [_0], function* ({ filePath, dataRowLengthsOffsetStart, dataRowLengthsOffsetEnd }) {
+      dataRowLengths: (_0) => __async(void 0, [_0], function* ({ filePath, dataRowLengthsStart, dataRowLengthsEnd }) {
         return readRange2({
           filePath,
-          start: dataRowLengthsOffsetStart,
-          end: dataRowLengthsOffsetEnd
+          start: dataRowLengthsStart,
+          end: dataRowLengthsEnd
         });
       }),
       archiveHeaderPartsBuffer: (_0) => __async(void 0, [_0], function* ({
         filePath,
-        headerRowOffsetStart,
-        headerRowOffsetEnd,
-        categoriesOffsetStart,
-        categoriesOffsetEnd,
-        dataRowIdsOffsetStart,
-        dataRowIdsOffsetEnd,
-        dataRowLengthsOffsetStart,
-        dataRowLengthsOffsetEnd
+        headerRowStart,
+        headerRowEnd,
+        categoriesStart,
+        categoriesEnd,
+        dataRowIdsStart,
+        dataRowIdsEnd,
+        dataRowLengthsStart,
+        dataRowLengthsEnd
       }) {
         const ranges = [
           {
             name: "headerRow",
-            start: headerRowOffsetStart,
-            end: headerRowOffsetEnd
+            start: headerRowStart,
+            end: headerRowEnd
           },
           {
             name: "categories",
-            start: categoriesOffsetStart,
-            end: categoriesOffsetEnd
+            start: categoriesStart,
+            end: categoriesEnd
           },
           {
             name: "dataRowIds",
-            start: dataRowIdsOffsetStart,
-            end: dataRowIdsOffsetEnd
+            start: dataRowIdsStart,
+            end: dataRowIdsEnd
           },
           {
             name: "dataRowLengths",
-            start: dataRowLengthsOffsetStart,
-            end: dataRowLengthsOffsetEnd
+            start: dataRowLengthsStart,
+            end: dataRowLengthsEnd
           }
         ];
         const buffer = yield readRange2({
           filePath,
-          ranges: [{ start: headerRowOffsetStart, end: dataRowLengthsOffsetEnd }]
+          ranges: [{ start: headerRowStart, end: dataRowLengthsEnd }]
         });
         let offset = 0;
         const parts = {};
@@ -2235,7 +2235,7 @@ var TabularArchive = (() => {
     });
     const archiveHeader = decode6({ buffer: archiveHeaderBuffer });
     const { dataRowIdsEncoderString } = archiveHeader;
-    const startOfDataRows = archiveHeader.dataRowLengthsOffsetEnd;
+    const startOfDataRows = archiveHeader.dataRowLengthsEnd;
     const userIdEncoder = import_protocol_buffers_encodings.default[dataRowIdsEncoderString];
     const readOptions = __spreadValues({
       filePath: archiveFilePath

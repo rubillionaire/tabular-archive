@@ -28,71 +28,71 @@ export const readArchiveRanges = ({ readRange }) => {
         end,
       })
     },
-    headerRow: async ({ filePath, headerRowOffsetStart, headerRowOffsetEnd }) => {
+    headerRow: async ({ filePath, headerRowStart, headerRowEnd }) => {
       return readRange({
         filePath,
-        start: headerRowOffsetStart,
-        end: headerRowOffsetEnd,
+        start: headerRowStart,
+        end: headerRowEnd,
       })
     },
-    categories: async ({ filePath, categoriesOffsetStart, categoriesOffsetEnd }) => {
+    categories: async ({ filePath, categoriesStart, categoriesEnd }) => {
       return readRange({
         filePath,
-        start: categoriesOffsetStart,
-        end: categoriesOffsetEnd,
+        start: categoriesStart,
+        end: categoriesEnd,
       })
     },
-    dataRowIds: async ({ filePath, dataRowIdsOffsetStart, dataRowIdsOffsetEnd }) => {
+    dataRowIds: async ({ filePath, dataRowIdsStart, dataRowIdsEnd }) => {
       return readRange({
         filePath,
-        start: dataRowIdsOffsetStart,
-        end: dataRowIdsOffsetEnd,
+        start: dataRowIdsStart,
+        end: dataRowIdsEnd,
       })
     },
-    dataRowLengths: async ({ filePath, dataRowLengthsOffsetStart, dataRowLengthsOffsetEnd }) => {
+    dataRowLengths: async ({ filePath, dataRowLengthsStart, dataRowLengthsEnd }) => {
       return readRange({
         filePath,
-        start: dataRowLengthsOffsetStart,
-        end: dataRowLengthsOffsetEnd,
+        start: dataRowLengthsStart,
+        end: dataRowLengthsEnd,
       })
     },
     archiveHeaderPartsBuffer: async ({
         filePath,
-        headerRowOffsetStart,
-        headerRowOffsetEnd,
-        categoriesOffsetStart,
-        categoriesOffsetEnd,
-        dataRowIdsOffsetStart,
-        dataRowIdsOffsetEnd,
-        dataRowLengthsOffsetStart,
-        dataRowLengthsOffsetEnd,
+        headerRowStart,
+        headerRowEnd,
+        categoriesStart,
+        categoriesEnd,
+        dataRowIdsStart,
+        dataRowIdsEnd,
+        dataRowLengthsStart,
+        dataRowLengthsEnd,
       }) => {
       const ranges = [
         {
           name: 'headerRow',
-          start: headerRowOffsetStart,
-          end: headerRowOffsetEnd,
+          start: headerRowStart,
+          end: headerRowEnd,
         },
         {
           name: 'categories',
-          start: categoriesOffsetStart,
-          end: categoriesOffsetEnd,
+          start: categoriesStart,
+          end: categoriesEnd,
         },
         {
           name: 'dataRowIds',
-          start: dataRowIdsOffsetStart,
-          end: dataRowIdsOffsetEnd,
+          start: dataRowIdsStart,
+          end: dataRowIdsEnd,
         },
         {
           name: 'dataRowLengths',
-          start: dataRowLengthsOffsetStart,
-          end: dataRowLengthsOffsetEnd,
+          start: dataRowLengthsStart,
+          end: dataRowLengthsEnd,
         },
       ]
 
       const buffer = await readRange({
         filePath,
-        ranges: [{ start: headerRowOffsetStart, end: dataRowLengthsOffsetEnd }],
+        ranges: [{ start: headerRowStart, end: dataRowLengthsEnd }],
       })
 
       let offset = 0
@@ -121,7 +121,7 @@ export const decode = ({ readRange }) => async ({ archiveFilePath }) => {
 
   const { dataRowIdsEncoderString } = archiveHeader
   // this is where the data starts
-  const startOfDataRows = archiveHeader.dataRowLengthsOffsetEnd
+  const startOfDataRows = archiveHeader.dataRowLengthsEnd
   const userIdEncoder = enc[dataRowIdsEncoderString]
 
   const readOptions = {
