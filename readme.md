@@ -1,6 +1,8 @@
 # tabular-archive
 
-A node.js module and CLI that encodes a CSV into a compressed archive, and a browser module for reading slices of the archive.
+A node.js module and CLI that encodes a CSV into a compressed archive, and a browser module for reading rows of data from the archive. Rows of data can be read out individually, or with a start and end range. If the encoding process is provided with a function to determine an ID value for each row, then rows can be read from the archive based on the ID of a row, and optionally with a surrounding page of rows.
+
+Data values are encoded with the [`protocol-buffer-encodings`](https://github.com/mafintosh/protocol-buffers-encodings) module, and subsequently gzip'd with [`fflate`](https://github.com/101arrowz/fflate).
 
 The motivation for this project was to support creating an HTML table of data without reading the entire CSV into memory. An expression of gratitude for the network and not using more than needed. A sentiment encountered while doing volunteer spatial analysis work for the [Open Redcedar Dieback Analyses](https://jmhulbert.github.io/open/redcedar/). This code powers the data fetching of the interactive data explorer of the [Distance to Waterways Analysis](https://jmhulbert.github.io/open/redcedar/analyses/distance-to-waterways/) that I produced. The source code of which lives [here](https://github.com/rubillionaire/open/tree/main/redcedar/analyses/distance-to-waterways/web-explorer).
 
@@ -142,3 +144,32 @@ The return value of the `decode` function is an async function that takes an obj
 `npm test`
 
 The tests show how each module gets used and composed in a final tabular-archive. The [test/user-supplied/redcedar-config.mjs](./test/user-supplied/redcedar-config.mjs) file also shows how encoding can be configured.
+
+
+### `tabular-archive` Spec
+
+The archive contains a [header](./src/archive-header.mjs) that describes the shape of the archive and how it can be decoded. The header contains the following bytes of encoded data.
+
+1. 'TabularArchive', the name of our file format
+2. 1, the current version number
+3. `headerRowtStart`, the start of the `headerRow` byte range
+4. `headerRowEnd`, the end of the `headerRow` byte range
+5. `categoriesStart`, the start of the `categories` byte range
+6. `categoriesEnd`, the end of the `categories` byte range
+7. `dataRowIdEncoderType`, the string that represents the encoder type used to encode `dataRowIds` values
+8. `dataRowIdsStart`, the start of the `dataRowIds` byte range
+9. `dataRowIdsEnd`, the end of the `dataRowIds` byte range
+10. `dataRowLengthsStart`, the start of the `dataRowLengths` byte range
+11. `dataRowLengthsEnd`, the end of the `dataRowLengths` byte range
+
+The `headerRow` is a series of `field` and `encoder` values both stored as strings.
+
+The `categories` are a series of `category` string values.
+
+The `dataRowIdEncoderType` is a string that represents the encoder used for the `dataRowIds`. For example, 'int32'.
+
+The `dataRowIds` are a series of values encoded using the `dataRowIdEncoderType`.
+
+The `dataRowLengths` are a series of byte length values.
+
+The data rows are stored with the lengths specified in `dataRowLengths`, starting at the byte offset defined as `dataRowLengthsEnd`.

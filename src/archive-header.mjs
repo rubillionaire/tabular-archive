@@ -8,7 +8,7 @@ export const name = 'TabularArchive'
 export const version = 1
 
 /**
- * Return { buffer, bufferLength }
+ * Return { buffer, bufferLength, fileHead }
  *
  * `buffer` is the header incrementally built out
  * `bufferLength` is the current position in the buffer
@@ -90,7 +90,7 @@ export const decode = ({ buffer, offset=0 }) => {
   const dataRowLengthsEnd = enc.int64.decode(buffer, offset)
   offset += enc.int64.decode.bytes
   
-  // data row buffers written starting at dataRowLength
+  // data row buffers written starting at dataRowLengthEnd
   return {
     headerRowStart,
     headerRowEnd,
