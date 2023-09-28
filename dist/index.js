@@ -2295,7 +2295,7 @@ var TabularArchive = (() => {
         });
         const buffer = gunzipSync(compressedBuffer);
         const { row } = rowDecoder({ buffer });
-        return { row };
+        return { row, rowNumber };
       });
     }
     function getRowsBySequence(_02) {

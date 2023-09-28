@@ -1962,7 +1962,7 @@ var decode7 = ({ readRange: readRange2 }) => (_0) => __async(void 0, [_0], funct
       });
       const buffer = gunzipSync(compressedBuffer);
       const { row } = rowDecoder({ buffer });
-      return { row };
+      return { row, rowNumber };
     });
   }
   function getRowsBySequence(_02) {
