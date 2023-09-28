@@ -1,7 +1,7 @@
 {
   "name": "tabular-archive",
   "version": "1.0.0",
-  "description": "",
+  "description": "A node.js module and CLI that encodes a CSV into a compressed archive, and a browser module for reading rows of data from the archive.",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "source": "index.mjs",
