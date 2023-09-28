@@ -212,7 +212,7 @@ export const decode = ({ readRange }) => async ({ archiveFilePath }) => {
       const compressedBufferSlice = compressedBuffer.slice(offsetStart, offsetEnd)
       const buffer = gunzipSync(compressedBufferSlice)
       const { row } = rowDecoder({ buffer })
-      yield { row, index: startRowNumber + i }
+      yield { row, rowNumber: startRowNumber + i }
       offsetStart = offsetEnd
     }
   }
