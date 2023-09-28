@@ -1,5 +1,6 @@
 import b4a from 'b4a'
 import { encoder as enc } from './encoder.mjs'
+import { gzipSync, gunzipSync } from 'fflate'
 
 export const create = ({ header, userHeader=[] }) => {
   const headerRow = header.map(field => {
@@ -32,18 +33,22 @@ export const encode = ({ headerRow }) => {
     bufferLength += enc.string.encode.bytes
   })
 
+  const compressedBuffer = gzipSync(buffer)
+
   return {
-    buffer,
-    bufferLength,
+    buffer: compressedBuffer,
+    bufferLength: compressedBuffer.length,
   }
 }
 
 export const decode = ({ buffer, offset=0 }) => {
+  const uncompressedBuffer = gunzipSync(buffer)
+  
   const headerRow = []
-  while (offset <  buffer.length - 1) {
-    const field = enc.string.decode(buffer, offset)
+  while (offset <  uncompressedBuffer.length - 1) {
+    const field = enc.string.decode(uncompressedBuffer, offset)
     offset += enc.string.decode.bytes
-    const encoder = enc.string.decode(buffer, offset)
+    const encoder = enc.string.decode(uncompressedBuffer, offset)
     offset += enc.string.decode.bytes
     headerRow.push({
       field,

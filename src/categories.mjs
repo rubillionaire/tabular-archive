@@ -1,5 +1,6 @@
 import b4a from 'b4a'
 import { encoder as enc } from './encoder.mjs'
+import { gzipSync, gunzipSync } from 'fflate'
 
 export const encode = ({ categories }) => {
   let bufferLength = categories.map(s => {
@@ -12,13 +13,20 @@ export const encode = ({ categories }) => {
     bufferLength += enc.string.encode.bytes
   })
 
-  return { buffer, bufferLength }
+  const compressedBuffer = gzipSync(buffer)
+
+  return {
+    buffer: compressedBuffer,
+    bufferLength: compressedBuffer.length,
+  }
 }
 
 export const decode = ({ buffer, offset=0 }) => {
+  const uncompressedBuffer = gunzipSync(buffer)
+
   const categories = []
-  while (offset < buffer.length - 1) {
-    const category = enc.string.decode(buffer, offset)
+  while (offset < uncompressedBuffer.length - 1) {
+    const category = enc.string.decode(uncompressedBuffer, offset)
     offset += enc.string.decode.bytes
     categories.push(category)
   }
