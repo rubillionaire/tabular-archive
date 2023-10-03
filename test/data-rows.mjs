@@ -133,9 +133,8 @@ test('data-rows', async (t) => {
     // const { row } = rowDecoder({ buffer })
     const uncompressedBuffer = gunzipSync(buffer)
     const { row } = rowDecoder({ buffer: uncompressedBuffer })
-    for (const field of matchingFields) {
-      t.is(row[field], value[field], `Random sample (index:${index}) field ${field} is same.`)  
-    }
+    const tester = matchingFields({ t, headerRow, msgPrefix: `Random sample (index:${index})` })
+    tester(row, value)
   }
 
   t.pass('Sampled data.')

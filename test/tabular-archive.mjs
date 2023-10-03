@@ -52,21 +52,18 @@ test('populate-sampler', async (t) => {
   t.pass('Populated a random sample of data to verify against the decoder.')
 })
 
-const decoderTests = async ({ t, decoder }) => {
-
+const decoderTests = async ({ t, decoder, headerRow }) => {
   for (const { index, value } of sampler.sample) {
     {
       const { row } = await decoder.getRowBySequence({ rowNumber: index })
-      for (const field of matchingFields) {
-        t.is(row[field], value[field], `By sequence: random sample (index:${index}) field ${field} is same.`)  
-      }
+      const tester = matchingFields({ t, headerRow, msgPrefix: `By sequence: random sample (index:${index})` })
+      tester(row, value)
     }
     {
       const id = userIdForRow({ row: value })
       const { row } = await decoder.getRowById({ id })
-      for (const field of matchingFields) {
-        t.is(row[field], value[field], `By ID: random sample (index:${index}) field ${field} is same.`)  
-      }
+      const tester = matchingFields({ t, headerRow, msgPrefix: `By ID: random sample (index:${index})` })
+      tester(row, value)
     }
   }
 
@@ -74,7 +71,7 @@ const decoderTests = async ({ t, decoder }) => {
 
 test('archive-decode:fs', async (t) => {
   const decoder = await decode({ readRange: readRangeFs })({ archiveFilePath })
-  await decoderTests({ t, decoder })
+  await decoderTests({ t, decoder, headerRow: decoder.headerRow })
   t.pass('Successfully decode the tabular-archive using node-fs interface')
 })
 
@@ -107,7 +104,7 @@ test('archive-decode:fetch', async (t) => {
     archiveFilePath: `http://localhost:${server.port}/${archiveFilePathName}`,
   })
 
-  await decoderTests({ t, decoder })
+  await decoderTests({ t, decoder, headerRow: decoder.headerRow })
 
   let counter = -1
   const pageCount = 10
